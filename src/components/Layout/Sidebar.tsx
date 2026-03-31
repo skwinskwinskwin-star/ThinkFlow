@@ -18,7 +18,8 @@ import {
   MessageCircle,
   BarChart3,
   X,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
