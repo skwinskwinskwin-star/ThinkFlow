@@ -2,60 +2,19 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# 🚀 ThinkFlow - AI-платформа для обучения
+# Run and deploy your AI Studio app
 
-**Думай лучше, не быстрее**
+This contains everything you need to run your app locally.
 
-Персональный AI учитель, который объясняет предметы через интересы учащихся!
+View your app in AI Studio: https://ai.studio/apps/40c22e6e-5fc3-462c-ad48-ab8924415ba7
 
-## ✨ Особенности
+## Run Locally
 
-### 🎓 Концепт Учитель
-Объясняет любой предмет через ваши интересы (Спорт, Аниме, Код, Бизнес...)
+**Prerequisites:**  Node.js
 
-### 🧠 Коуч Мышления
-Использует Сократовский метод - помогает найти ответ самостоятельно
 
-### ⚡ Адаптивный Тренер
-Задачи подстраиваются под ваш уровень - от простых до сложных
-
-## 🌍 Многоязычность
-
-- 🇷🇺 Русский
-- 🇬🇧 Английский  
-- 🇺🇿 Узбекский
-
-## 🎯 Быстрый старт
-
-### Для школьников 📚
-
-Откройте ссылку вашей школы и начните учиться!
-
-Подробнее: [SCHOOL_README.md](SCHOOL_README.md)
-
-### Для администратора 👨‍💼
-
-Разверните приложение для всей школы в 15 минут
-
-Подробнее: [ADMIN_GUIDE.md](ADMIN_GUIDE.md) 
-
-### Для разработчиков 👨‍💻
-
-1. Установите зависимости:
-   ```bash
-   npm install
-   ```
-
-2. Создайте `.env.local`:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
-
-3. Запустите dev сервер:
-   ```bash
-   npm run dev
-   ```
-
-4. Откройте http://localhost:3000
-
-Подробнее: [SETUP_FIX.md](SETUP_FIX.md) и [DEPLOY_SCHOOL.md](DEPLOY_SCHOOL.md)
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

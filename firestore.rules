@@ -1,0 +1,144 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (Auth UID)
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - email: string (required, email format)
+    //   - name: string (required, 1-100 chars)
+    //   - age: integer (optional, 5-100)
+    //   - studentClass: string (required, enum)
+    //   - photoURL: string (optional, uri)
+    //   - interests: list (required, strings)
+    //   - xp: integer (required, >= 0)
+    //   - level: integer (required, >= 1)
+    //   - role: string (required, enum: ['student', 'admin'])
+    //   - language: string (required, enum: ['en', 'ru', 'uz'])
+    //   - theme: string (required, enum: ['light', 'dark'])
+    //   - bio: string (optional, < 500 chars)
+    //
+    // Collection: sessions
+    // Document ID: sessionId
+    // Fields:
+    //   - userId: string (required, matches owner)
+    //   - title: string (required)
+    //   - type: string (required, enum)
+    //   - messages: list (required, maps)
+    //   - lastUpdated: integer (required)
+    //
+    // Collection: tasks
+    // Document ID: taskId
+    // Fields:
+    //   - userId: string (required, matches owner)
+    //   - title: string (required)
+    //   - description: string (required)
+    //   - difficulty: string (required, enum)
+    //   - status: string (required, enum)
+    //   - xpReward: integer (required)
+    //   - createdAt: integer (required)
+    //
+    // Collection: reviews
+    // Document ID: reviewId
+    // Fields:
+    //   - userId: string (required, matches owner)
+    //   - userName: string (required)
+    //   - text: string (required, < 1000 chars)
+    //   - rating: integer (required, 1-5)
+    //   - timestamp: integer (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "skwinskwinskwin@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'name', 'studentClass', 'interests', 'xp', 'level', 'role', 'language', 'theme']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.studentClass is string &&
+             data.interests is list &&
+             data.xp is int && data.xp >= 0 &&
+             data.level is int && data.level >= 1 &&
+             data.role in ['student', 'admin'] &&
+             data.language in ['en', 'ru', 'uz'] &&
+             data.theme in ['light', 'dark'];
+    }
+
+    function isValidSession(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 &&
+             data.type in ['teacher', 'coach', 'trainer'] &&
+             data.messages is list &&
+             data.lastUpdated is int;
+    }
+
+    function isValidTask(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 &&
+             data.difficulty in ['Easy', 'Medium', 'Challenge'] &&
+             data.status in ['pending', 'completed'] &&
+             data.xpReward is int &&
+             data.createdAt is int;
+    }
+
+    function isValidReview(data) {
+      return data.userId == request.auth.uid &&
+             data.userName is string && data.userName.size() > 0 &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 1000 &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5 &&
+             data.timestamp is int;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'student' || isAdmin());
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidSession(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin()) && isValidSession(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidTask(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin()) && isValidTask(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true; // Reviews are public
+      allow create: if isAuthenticated() && isValidReview(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

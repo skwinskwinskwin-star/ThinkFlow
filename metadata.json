@@ -1,5 +1,6 @@
+
 {
-  "name": "ThinkFlow AI",
-  "description": "A dynamic brainstorming and mind-mapping canvas that uses Gemini 1.5 Pro to expand ideas, generate connections, and help you visualize complex thought patterns.",
-  "requestFramePermissions": []
+  "name": "ThinkFlow Platform",
+  "description": "An AI-guided school project platform that helps students understand subjects through reasoning, guidance, and personal interests. Features AI chat, task management, progress tracking, and educational content.",
+  "requestFramePermissions": ["camera", "microphone"]
 }

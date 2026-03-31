@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores student information and progress",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "age": { "type": "integer" },
+        "studentClass": { "type": "string", "enum": ["7A", "7B", "8A", "8B", "9A", "9B", "10A", "10B", "11A", "11B"] },
+        "photoURL": { "type": "string", "format": "uri" },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "xp": { "type": "integer" },
+        "level": { "type": "integer" },
+        "isAdmin": { "type": "boolean" },
+        "language": { "type": "string", "enum": ["en", "ru", "uz"] },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "bio": { "type": "string" }
+      },
+      "required": ["uid", "email", "name", "studentClass", "interests", "xp", "level", "isAdmin", "language", "theme"]
+    },
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Stores AI conversation history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["teacher", "coach", "trainer"] },
+        "messages": { "type": "array", "items": { "$ref": "Message" } },
+        "lastUpdated": { "type": "integer" }
+      },
+      "required": ["userId", "title", "type", "messages", "lastUpdated"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a chat session",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "attachment": { "type": "object", "properties": { "name": { "type": "string" }, "mimeType": { "type": "string" }, "data": { "type": "string" } } }
+      },
+      "required": ["role", "text", "timestamp"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Learning tasks generated for students",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Challenge"] },
+        "status": { "type": "string", "enum": ["pending", "completed"] },
+        "xpReward": { "type": "integer" },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["userId", "title", "difficulty", "status", "xpReward", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "User reviews of the platform",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "text": { "type": "string" },
+        "rating": { "type": "integer" },
+        "timestamp": { "type": "integer" }
+      },
+      "required": ["userId", "userName", "text", "rating", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Chat sessions"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Student tasks"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Platform reviews"
+    }
+  }
+}
