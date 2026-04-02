@@ -6,8 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { AIModelType, Message, Attachment, ChatSession } from '../../types';
 import { askThinkFlowAI } from '../../services/gemini';
-import { db, handleFirestoreError, OperationType } from '../../services/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { supabase, handleSupabaseError } from '../../services/supabase';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
@@ -35,17 +34,37 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
   useEffect(() => {
     if (!user || !sessionId) return;
 
-    const q = doc(db, 'sessions', sessionId);
-    const unsubscribe = onSnapshot(q, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as ChatSession;
-        setMessages(data.messages);
+    const fetchSession = async () => {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+      
+      if (error) {
+        handleSupabaseError(error, 'GET', `sessions/${sessionId}`);
+      } else if (data) {
+        setMessages((data as ChatSession).messages);
       }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `sessions/${sessionId}`);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchSession();
+
+    const channel = supabase
+      .channel(`session:${sessionId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'sessions',
+        filter: `id=eq.${sessionId}`
+      }, (payload) => {
+        setMessages((payload.new as ChatSession).messages);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, sessionId]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,6 +101,18 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
 
     try {
       const aiResponse = await askThinkFlowAI(type, input, profile, messages, attachment || undefined);
+      
+      // Check if the response is an error message about the API key
+      if (aiResponse.includes("API_KEY")) {
+        setMessages(prev => [...prev, {
+          role: 'model',
+          text: "⚠️ **AI Connection Error**: The Genius Lab requires an API Key to function. Please contact the administrator or check the platform settings.",
+          timestamp: Date.now()
+        }]);
+        setIsLoading(false);
+        return;
+      }
+
       const modelMsg: Message = {
         role: 'model',
         text: aiResponse,
@@ -92,25 +123,41 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
       
       if (!sessionId) {
         const sessionData = {
-          userId: user.uid,
+          userId: user.id,
           title: input.slice(0, 30) || "New Conversation",
           type,
           messages: finalMessages,
           lastUpdated: Date.now()
         };
-        const docRef = await addDoc(collection(db, 'sessions'), sessionData);
-        setSessionId(docRef.id);
+        const { data, error } = await supabase
+          .from('sessions')
+          .insert(sessionData)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        if (data) setSessionId(data.id);
       } else {
-        await updateDoc(doc(db, 'sessions', sessionId), {
-          messages: finalMessages,
-          lastUpdated: Date.now()
-        });
+        const { error } = await supabase
+          .from('sessions')
+          .update({
+            messages: finalMessages,
+            lastUpdated: Date.now()
+          })
+          .eq('id', sessionId);
+        
+        if (error) throw error;
       }
 
       // Update XP
-      await updateDoc(doc(db, 'users', user.uid), {
-        xp: (profile.xp || 0) + 15
-      });
+      const { error: xpError } = await supabase
+        .from('users')
+        .update({
+          xp: (profile.xp || 0) + 15
+        })
+        .eq('uid', user.id);
+      
+      if (xpError) throw xpError;
 
     } catch (error) {
       console.error("Chat error:", error);

@@ -4,8 +4,7 @@ import { Zap, CheckCircle2, Circle, Trophy, Clock, Plus, Loader2 } from 'lucide-
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Task } from '../../types';
-import { db, handleFirestoreError, OperationType } from '../../services/firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { supabase, handleSupabaseError } from '../../services/supabase';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
@@ -19,22 +18,44 @@ export const Tasks: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, 'tasks'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const taskList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-      setTasks(taskList);
+    const fetchTasks = async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('userId', user.id)
+        .order('createdAt', { ascending: false });
+      
+      if (error) {
+        handleSupabaseError(error, 'LIST', 'tasks');
+      } else {
+        setTasks(data as Task[]);
+      }
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'tasks');
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchTasks();
+
+    const channel = supabase
+      .channel('public:tasks')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tasks',
+        filter: `userId=eq.${user.id}`
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setTasks(prev => [payload.new as Task, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new as Task : t));
+        } else if (payload.eventType === 'DELETE') {
+          setTasks(prev => prev.filter(t => t.id === payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const generateTask = async () => {
@@ -52,8 +73,8 @@ export const Tasks: React.FC = () => {
     const template = templates[Math.floor(Math.random() * templates.length)];
 
     try {
-      await addDoc(collection(db, 'tasks'), {
-        userId: user.uid,
+      const { error } = await supabase.from('tasks').insert({
+        userId: user.id,
         title: template.title,
         description: template.desc,
         difficulty: template.diff,
@@ -61,8 +82,9 @@ export const Tasks: React.FC = () => {
         xpReward: template.xp,
         createdAt: Date.now()
       });
+      if (error) throw error;
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'tasks');
+      handleSupabaseError(error, 'CREATE', 'tasks');
     } finally {
       setIsGenerating(false);
     }
@@ -72,15 +94,21 @@ export const Tasks: React.FC = () => {
     if (!user || !profile || task.status === 'completed') return;
 
     try {
-      await updateDoc(doc(db, 'tasks', task.id), {
-        status: 'completed'
-      });
+      const { error: taskError } = await supabase
+        .from('tasks')
+        .update({ status: 'completed' })
+        .eq('id', task.id);
+      
+      if (taskError) throw taskError;
 
-      await updateDoc(doc(db, 'users', user.uid), {
-        xp: (profile.xp || 0) + task.xpReward
-      });
+      const { error: userError } = await supabase
+        .from('users')
+        .update({ xp: (profile.xp || 0) + task.xpReward })
+        .eq('uid', user.id);
+      
+      if (userError) throw userError;
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `tasks/${task.id}`);
+      handleSupabaseError(error, 'UPDATE', `tasks/${task.id}`);
     }
   };
 

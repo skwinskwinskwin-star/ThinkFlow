@@ -1,7 +1,7 @@
 
 export type Language = 'en' | 'ru' | 'uz';
 export type StudentClass = '7A' | '7B' | '8A' | '8B' | '9A' | '9B' | '10A' | '10B' | '11A' | '11B';
-export type AIModelType = 'teacher' | 'coach' | 'trainer';
+export type AIModelType = 'teacher' | 'coach' | 'trainer' | 'genius';
 
 export interface Attachment {
   mimeType: string;
@@ -52,7 +52,7 @@ export interface Review {
 
 export interface Article {
   id: string;
-  subject: 'Physics' | 'Algebra' | 'English';
+  subject: 'Physics' | 'Algebra' | 'English' | 'Biology' | 'Chemistry' | 'History';
   title: string;
   content: string;
   author: string;
@@ -68,6 +68,22 @@ export interface Task {
   status: 'pending' | 'completed';
   xpReward: number;
   createdAt: number;
+}
+
+export interface KnowledgeNode {
+  id: string;
+  label: string;
+  description: string;
+  metaphor: string;
+  challenge: string;
+  type: 'core' | 'branch' | 'leaf';
+  completed?: boolean;
+}
+
+export interface KnowledgeTree {
+  topic: string;
+  nodes: KnowledgeNode[];
+  connections: { from: string; to: string }[];
 }
 
 export interface Quote {

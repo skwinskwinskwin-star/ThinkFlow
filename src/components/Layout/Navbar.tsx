@@ -2,6 +2,7 @@
 import React from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -9,6 +10,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const { profile } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <header className="h-20 border-b border-[var(--border)] flex items-center justify-between px-8 md:px-12 bg-[var(--card)]/80 backdrop-blur-xl z-40 sticky top-0">
@@ -26,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           <Search className="w-4 h-4 text-[var(--muted)]" />
           <input 
             type="text" 
-            placeholder="Search thoughts..." 
+            placeholder={t.searchThoughts} 
             className="bg-transparent border-none outline-none text-xs font-medium w-40 text-[var(--text)]"
           />
         </div>
@@ -39,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-[8px] font-black text-[var(--muted)] uppercase tracking-widest">Global XP</p>
+              <p className="text-[8px] font-black text-[var(--muted)] uppercase tracking-widest">{t.globalXP}</p>
               <p className="text-lg font-black text-indigo-500 leading-none">{profile?.xp || 0}</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/20">

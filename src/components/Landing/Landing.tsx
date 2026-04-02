@@ -1,140 +1,281 @@
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Brain, Sparkles, Target, Users, BookOpen, Quote, ArrowRight, Star, Globe, ShieldCheck } from 'lucide-react';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
+import { Brain, Sparkles, Target, Users, ArrowRight, Zap, Globe, ShieldCheck, Star, Cpu, Rocket, PlayCircle, Fingerprint, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
+import { GeniusBackground } from '../UI/GeniusBackground';
 
 interface LandingProps {
   onGetStarted: () => void;
 }
 
+const FeatureCard = ({ feature, index }: { feature: any, index: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ duration: 0.8, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      className={feature.size || ""}
+    >
+      <Card className="h-full p-10 rounded-[3rem] border border-white/5 bg-white/5 backdrop-blur-3xl group hover:border-indigo-500/50 transition-all relative overflow-hidden flex flex-col justify-between">
+        <div className={`absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-20 blur-[80px] transition-opacity duration-700`} />
+        
+        <div className="relative z-10">
+          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-500`}>
+            <feature.icon className="w-8 h-8 text-white" />
+          </div>
+          
+          <div className="mt-10">
+            <h3 className="text-3xl font-black uppercase tracking-tighter text-white mb-4 group-hover:text-indigo-500 transition-colors">
+              {feature.title}
+            </h3>
+            <p className="text-lg text-gray-400 leading-relaxed font-medium group-hover:text-white transition-colors">
+              {feature.desc}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          {useLanguage().t.exploreSystem} <ChevronRight className="w-3 h-3" />
+        </div>
+      </Card>
+    </motion.div>
+  );
+};
+
 export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.1], [1, 0.8]);
+  const y = useTransform(scrollYProgress, [0, 0.1], [0, -100]);
+  const springScale = useSpring(scale, { stiffness: 100, damping: 30 });
 
   const features = [
-    { title: "AI-Guided Learning", desc: "Our AI doesn't just give answers; it teaches you how to think and solve problems step-by-step.", icon: Brain, color: "text-indigo-500" },
-    { title: "Interest-Based Context", desc: "Learn complex concepts through your favorite topics like Football, Anime, or Gaming.", icon: Sparkles, color: "text-purple-500" },
-    { title: "Progress Tracking", desc: "Earn XP, level up, and climb the leaderboard as you master new subjects.", icon: Target, color: "text-emerald-500" },
-    { title: "Global Community", desc: "Connect with students worldwide and share your learning journey.", icon: Users, color: "text-rose-500" },
-  ];
-
-  const stats = [
-    { label: "Aha! Moments", value: "Endless", icon: Sparkles },
-    { label: "Learning Path", value: "Unique", icon: Target },
-    { label: "Understanding", value: "Deep", icon: Brain },
-    { label: "Growth", value: "Constant", icon: Users },
+    { 
+      title: t.reactorTitle, 
+      desc: t.reactorDesc, 
+      icon: Cpu, 
+      color: "from-indigo-600 to-blue-600",
+      size: "col-span-1 md:col-span-1"
+    },
+    { 
+      title: t.geniusModeTitle, 
+      desc: t.geniusModeDesc, 
+      icon: Zap, 
+      color: "from-amber-500 to-orange-600",
+      size: "col-span-1 md:col-span-1"
+    },
+    { 
+      title: t.biometricsTitle, 
+      desc: t.biometricsDesc, 
+      icon: Fingerprint, 
+      color: "from-emerald-500 to-teal-600",
+      size: "col-span-1 md:col-span-1"
+    },
+    { 
+      title: t.hubTitle, 
+      desc: t.hubDesc, 
+      icon: Globe, 
+      color: "from-rose-500 to-purple-600",
+      size: "col-span-1 md:col-span-1"
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-indigo-500 selection:text-white">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-        </div>
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-[#020205] text-white selection:bg-indigo-500 selection:text-white relative overflow-x-hidden font-sans"
+    >
+      <GeniusBackground />
+      
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-8 md:px-12 flex items-center justify-between max-w-7xl mx-auto">
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex items-center gap-3"
+        >
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-[0_0_20px_rgba(79,70,229,0.4)]">
+            T
+          </div>
+          <span className="text-2xl font-black tracking-tighter uppercase italic">Think<span className="text-indigo-500">Flow</span></span>
+        </motion.div>
+        
+        <div className="flex items-center gap-6">
+          {/* Language Switcher */}
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-md">
+            {(['en', 'ru', 'uz'] as const).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full transition-all ${
+                  language === lang 
+                    ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.4)]' 
+                    : 'text-gray-500 hover:text-white'
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
 
-        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+          <button 
+            onClick={onGetStarted}
+            className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-white transition-colors hidden sm:block"
+          >
+            {t.login}
+          </button>
+          <Button 
+            onClick={onGetStarted}
+            className="h-12 px-8 rounded-full text-[10px] font-black uppercase tracking-widest bg-white text-black hover:bg-gray-200 transition-all"
+          >
+            {t.start}
+          </Button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20">
+        <motion.div 
+          style={{ opacity, scale: springScale, y }}
+          className="relative z-10 text-center px-6"
+        >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-400 text-[9px] font-black uppercase tracking-[0.4em] mb-8 backdrop-blur-md"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 text-indigo-500 text-xs font-black uppercase tracking-widest mb-8 border border-indigo-500/20">
-              <Sparkles className="w-4 h-4" />
-              Revolutionizing Education
-            </div>
-            <h1 className="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-[0.85] text-[var(--text)] mb-10">
-              Think <span className="text-indigo-600">Flow</span><br />
-              <span className="text-[var(--muted)]">Not Just Answers.</span>
-            </h1>
-            <p className="max-w-2xl mx-auto text-xl text-[var(--muted)] font-medium mb-12 leading-relaxed">
-              The AI-powered learning platform that helps students master subjects through reasoning, guidance, and personal interests.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Button onClick={onGetStarted} className="h-20 px-12 rounded-[2rem] text-xl gap-3 shadow-2xl shadow-indigo-500/40">
-                Get Started <ArrowRight className="w-6 h-6" />
-              </Button>
-              <Button variant="outline" className="h-20 px-12 rounded-[2rem] text-xl border-[var(--border)]">
-                Learn More
-              </Button>
-            </div>
+            <Zap className="w-3 h-3 fill-current" />
+            {t.nextGenAI}
           </motion.div>
-        </div>
-      </section>
+          
+          <h1 className="text-[12vw] md:text-[10rem] font-black uppercase tracking-tighter leading-[0.8] mb-6">
+            <span className="block text-white">{t.beyondGenius.split(' ')[0]}</span>
+            <span className="block bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">{t.beyondGenius.split(' ')[1] || 'GENIUS'}</span>
+          </h1>
+          
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-400 font-medium mb-8 leading-relaxed">
+            {t.heroSub}
+          </p>
 
-      {/* Stats Section */}
-      <section className="py-20 border-y border-[var(--border)]">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
-            {stats.map((stat, i) => (
-              <div key={i} className="text-center space-y-2">
-                <div className="flex items-center justify-center gap-2 text-indigo-500 mb-2">
-                  <stat.icon className="w-5 h-5" />
-                  <span className="text-xs font-black uppercase tracking-widest">{stat.label}</span>
-                </div>
-                <div className="text-5xl font-black text-[var(--text)] tracking-tighter">{stat.value}</div>
-              </div>
-            ))}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <Button 
+              onClick={onGetStarted} 
+              className="h-20 px-12 rounded-2xl text-xl gap-4 bg-indigo-600 hover:bg-indigo-500 shadow-[0_20px_50px_rgba(79,70,229,0.3)] group"
+            >
+              {t.start} 
+              <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            
+            <button 
+              onClick={onGetStarted}
+              className="flex items-center gap-4 h-20 px-10 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all backdrop-blur-md"
+            >
+              <PlayCircle className="w-6 h-6 text-indigo-500" />
+              <span className="text-lg font-black uppercase tracking-widest">{t.demo}</span>
+            </button>
           </div>
+        </motion.div>
+
+        {/* Portal Visual Effect */}
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+              rotate: [0, 180, 360]
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="w-[800px] h-[800px] border border-white/5 rounded-full" 
+          />
+          <motion.div 
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              opacity: [0.05, 0.1, 0.05],
+              rotate: [360, 180, 0]
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            className="absolute w-[600px] h-[600px] border border-indigo-500/10 rounded-full" 
+          />
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-32">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text)] mb-6">
-              Why ThinkFlow?
+      {/* Bento Grid Section */}
+      <section className="py-12 relative z-10 px-6 bg-[#020205]">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16 text-center">
+            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-6">
+              {t.coreEngine.split(' ')[0]} <span className="text-indigo-500">{t.coreEngine.split(' ')[1]}</span> {t.coreEngine.split(' ')[2]}
             </h2>
-            <p className="text-[var(--muted)] font-medium max-w-xl mx-auto">
-              We believe education should be about understanding, not memorizing.
+            <p className="text-white/40 font-bold uppercase tracking-[0.3em] text-[10px]">
+              {t.coreEngineSub}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {features.map((feature, i) => (
-              <Card key={i} hover className="p-12 rounded-[4rem] border border-[var(--border)] group">
-                <div className={`w-20 h-20 rounded-[2rem] bg-[var(--input)] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform ${feature.color}`}>
-                  <feature.icon className="w-10 h-10" />
-                </div>
-                <h3 className="text-3xl font-black uppercase tracking-tighter text-[var(--text)] mb-4">{feature.title}</h3>
-                <p className="text-[var(--muted)] text-lg leading-relaxed font-medium">{feature.desc}</p>
-              </Card>
+              <FeatureCard key={i} feature={feature} index={i} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonial Section */}
-      <section className="py-32 bg-[var(--input)]">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-[var(--card)] p-16 md:p-24 rounded-[5rem] shadow-2xl border border-[var(--border)] relative overflow-hidden">
-            <Quote className="absolute top-10 left-10 w-32 h-32 text-indigo-500/5" />
-            <div className="relative z-10 max-w-3xl mx-auto text-center">
-              <div className="flex justify-center gap-1 mb-10">
-                {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-6 h-6 text-yellow-500 fill-yellow-500" />)}
+      {/* Interactive Showcase */}
+      <section className="py-16 relative overflow-hidden bg-[#020205]">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-12">
+            <div className="flex-1 space-y-10">
+              <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-indigo-500/40">
+                <Brain className="w-10 h-10" />
               </div>
-              <p className="text-3xl md:text-5xl font-black italic leading-tight text-[var(--text)] mb-12">
-                "ThinkFlow changed the way I look at Algebra. Instead of just formulas, I now understand the 'why' behind them."
+              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
+                {t.stopMemorizing.split(' ')[0]} <span className="text-indigo-500">{t.stopMemorizing.split(' ')[1]}</span><br />
+                {t.startFlowing.split(' ')[0]} <span className="text-purple-500">{t.startFlowing.split(' ')[1]}</span>
+              </h2>
+              <p className="text-xl text-white/50 leading-relaxed font-medium">
+                {language === 'ru' 
+                  ? 'Традиционное образование сломано. Оно вознаграждает память, а не логику. ThinkFlow меняет правила игры, используя ИИ для отображения сложных концепций непосредственно на ваши нейронные пути.'
+                  : language === 'uz'
+                  ? 'An’anaviy ta’lim tizimi buzilgan. U mantiqdan ko‘ra xotirani ko‘proq qadrlaydi. ThinkFlow qoidalarni o‘zgartiradi va murakkab tushunchalarni to‘g‘ridan-to‘g‘ri neyron yo‘llaringizga bog‘lash uchun sun’iy intellektdan foydalanadi.'
+                  : 'Traditional education is broken. It rewards memory over logic. ThinkFlow flips the script, using AI to map complex concepts directly to your existing neural pathways.'}
               </p>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl">S</div>
-                  <div className="text-left">
-                    <h4 className="font-black uppercase tracking-tighter text-[var(--text)]">Sharifganov Shokhruz</h4>
-                    <p className="text-xs font-black uppercase text-[var(--muted)] tracking-widest">9B Student</p>
-                  </div>
+              <div className="flex items-center gap-8">
+                <div className="text-center">
+                  <div className="text-4xl font-black text-indigo-500">98%</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-white/40">{t.retentionRate}</div>
                 </div>
-                <div className="w-px h-12 bg-[var(--border)] hidden md:block" />
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl">B</div>
-                  <div className="text-left">
-                    <h4 className="font-black uppercase tracking-tighter text-[var(--text)]">Babaev Bekhruz</h4>
-                    <p className="text-xs font-black uppercase text-[var(--muted)] tracking-widest">9B Student</p>
-                  </div>
+                <div className="w-px h-12 bg-white/10" />
+                <div className="text-center">
+                  <div className="text-4xl font-black text-purple-500">3.5x</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-white/40">{t.learningSpeed}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-1 relative">
+              <div className="aspect-square bg-indigo-600/5 rounded-[4rem] border border-white/10 relative overflow-hidden group">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="w-64 h-64 border-2 border-dashed border-indigo-500/30 rounded-full flex items-center justify-center"
+                  >
+                    <div className="w-48 h-48 border-2 border-dashed border-purple-500/30 rounded-full" />
+                  </motion.div>
+                  <Brain className="w-24 h-24 text-white absolute z-10 group-hover:scale-110 transition-transform duration-500" />
                 </div>
               </div>
             </div>
@@ -142,7 +283,20 @@ export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
         </div>
       </section>
 
-      {/* Footer removed per user request */}
+      {/* Footer */}
+      <footer className="py-12 border-t border-white/5 bg-[#020205] px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-sm">T</div>
+            <span className="text-xl font-black uppercase tracking-tighter">ThinkFlow</span>
+          </div>
+          <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+            <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> {t.secure}</span>
+            <span className="flex items-center gap-2"><Globe className="w-4 h-4" /> {t.global}</span>
+            <span>© 2026</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

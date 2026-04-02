@@ -2,7 +2,7 @@
 import React from 'react';
 import { 
   LayoutGrid, 
-  BookOpen, 
+  Brain, 
   MessageSquare, 
   Zap, 
   Trophy, 
@@ -25,7 +25,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Button } from '../UI/Button';
-import { auth } from '../../services/firebase';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -35,15 +34,14 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, currentView, onViewChange }) => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, geniusMode, setGeniusMode } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
 
   const menuItems = [
-    { id: 'learn', label: t.learn, icon: BookOpen },
-    { id: 'tasks', label: t.tasks, icon: Zap },
+    { id: 'genius_lab', label: t.geniusLab, icon: Brain },
+    { id: 'tasks', label: t.tasks, icon: LayoutGrid },
     { id: 'progress', label: t.progress, icon: BarChart3 },
-    { id: 'mvp', label: 'AI MVP', icon: Sparkles },
     { id: 'articles', label: t.articles, icon: FileText },
     { id: 'tips', label: t.tips, icon: Lightbulb },
     { id: 'quotes', label: t.quotes, icon: Quote },
@@ -54,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, currentView,
   ];
 
   if (profile?.role === 'admin') {
-    menuItems.push({ id: 'admin', label: 'Admin', icon: ShieldAlert });
+    menuItems.push({ id: 'admin', label: t.admin, icon: ShieldAlert });
   }
 
   return (
@@ -97,6 +95,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, currentView,
         </div>
 
         <div className="p-6 mt-auto border-t border-[var(--border)] space-y-3">
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start gap-4 transition-all ${geniusMode ? 'text-indigo-400' : ''}`} 
+            onClick={() => setGeniusMode(!geniusMode)}
+          >
+            <Sparkles className={`w-5 h-5 ${geniusMode ? 'animate-pulse' : ''}`} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{t.geniusMode}</span>
+          </Button>
+
           <Button 
             variant="ghost" 
             className="w-full justify-start gap-4" 

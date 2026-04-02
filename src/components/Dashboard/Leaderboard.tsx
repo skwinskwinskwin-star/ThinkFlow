@@ -4,8 +4,7 @@ import { Trophy, Medal, Crown, Loader2, ArrowUp, ArrowDown } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { UserProfile } from '../../types';
-import { db, handleFirestoreError, OperationType } from '../../services/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { supabase, handleSupabaseError } from '../../services/supabase';
 import { Card } from '../UI/Card';
 
 export const Leaderboard: React.FC = () => {
@@ -15,22 +14,31 @@ export const Leaderboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'users'),
-      orderBy('xp', 'desc'),
-      limit(20)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => doc.data() as UserProfile);
-      setStudents(list);
+    const fetchLeaderboard = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('xp', { ascending: false })
+        .limit(20);
+      
+      if (error) {
+        handleSupabaseError(error, 'LIST', 'users');
+      } else {
+        setStudents(data as UserProfile[]);
+      }
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'users');
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchLeaderboard();
+
+    const channel = supabase
+      .channel('public:users_leaderboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchLeaderboard)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {
@@ -54,7 +62,7 @@ export const Leaderboard: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {students.map((student, index) => {
-          const isMe = student.uid === user?.uid;
+          const isMe = student.uid === user?.id;
           const isTop3 = index < 3;
 
           return (

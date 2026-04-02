@@ -16,17 +16,25 @@ import { ProfileEditor } from './src/components/Dashboard/ProfileEditor';
 import { Progress } from './src/components/Dashboard/Progress';
 import { Settings } from './src/components/Dashboard/Settings';
 import { Admin } from './src/components/Dashboard/Admin';
-import { ThinkFlowMVP } from './src/components/Dashboard/ThinkFlowMVP';
+import { GeniusLab } from './src/components/Dashboard/GeniusLab';
 import { Landing } from './src/components/Landing/Landing';
 import { AuthModal } from './src/components/Auth/AuthModal';
+import { GeniusBackground } from './src/components/UI/GeniusBackground';
 import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const { user, profile, loading, isAuthReady } = useAuth();
   const { theme } = useTheme();
-  const [currentView, setCurrentView] = useState('learn');
+  const [currentView, setCurrentView] = useState('genius_lab');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Close modal when user logs in
+  useEffect(() => {
+    if (user) {
+      setIsAuthModalOpen(false);
+    }
+  }, [user]);
 
   // If auth is not ready or loading, show a loader
   if (!isAuthReady || loading) {
@@ -69,7 +77,7 @@ const App: React.FC = () => {
 
   const renderView = () => {
     switch (currentView) {
-      case 'learn': return <Chat type="teacher" />;
+      case 'genius_lab': return <GeniusLab />;
       case 'tasks': return <Tasks />;
       case 'leaderboard': return <Leaderboard />;
       case 'articles': return <Articles />;
@@ -78,15 +86,16 @@ const App: React.FC = () => {
       case 'reviews': return <Reviews />;
       case 'profile': return <ProfileEditor />;
       case 'progress': return <Progress />;
-      case 'mvp': return <ThinkFlowMVP />;
       case 'settings': return <Settings />;
       case 'admin': return <Admin />;
-      default: return <Chat type="teacher" />;
+      default: return <GeniusLab />;
     }
   };
 
   return (
-    <div className="h-screen flex bg-[var(--bg)] text-[var(--text)] transition-colors duration-500 overflow-hidden">
+    <div className="h-screen flex text-[var(--text)] transition-colors duration-500 overflow-hidden relative">
+      <GeniusBackground />
+      
       <Sidebar 
         currentView={currentView} 
         onViewChange={setCurrentView} 
@@ -103,8 +112,6 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
-
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 };

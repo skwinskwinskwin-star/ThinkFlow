@@ -4,8 +4,7 @@ import { MessageCircle, Star, Send, Loader2, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Review } from '../../types';
-import { db, handleFirestoreError, OperationType } from '../../services/firebase';
-import { collection, query, orderBy, limit, onSnapshot, addDoc } from 'firebase/firestore';
+import { supabase, handleSupabaseError } from '../../services/supabase';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
@@ -19,22 +18,31 @@ export const Reviews: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'reviews'),
-      orderBy('timestamp', 'desc'),
-      limit(20)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-      setReviews(list);
+    const fetchReviews = async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(20);
+      
+      if (error) {
+        handleSupabaseError(error, 'LIST', 'reviews');
+      } else {
+        setReviews(data as Review[]);
+      }
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'reviews');
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchReviews();
+
+    const channel = supabase
+      .channel('public:reviews_list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, fetchReviews)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const submitReview = async () => {
@@ -42,17 +50,20 @@ export const Reviews: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'reviews'), {
-        userId: user.uid,
+      const { error } = await supabase.from('reviews').insert({
+        userId: user.id,
         userName: profile.name,
         text: reviewInput,
         rating,
         timestamp: Date.now()
       });
+      
+      if (error) throw error;
+      
       setReviewInput('');
       setRating(5);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'reviews');
+      handleSupabaseError(error, 'CREATE', 'reviews');
     } finally {
       setIsSubmitting(false);
     }

@@ -5,8 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { INTERESTS, CLASSES } from '../../constants';
 import { StudentClass, UserProfile } from '../../types';
-import { db, handleFirestoreError, OperationType } from '../../services/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { supabase, handleSupabaseError } from '../../services/supabase';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
@@ -33,11 +32,17 @@ export const ProfileEditor: React.FC = () => {
     };
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), updatedProfile);
+      const { error } = await supabase
+        .from('users')
+        .update(updatedProfile)
+        .eq('uid', user.id);
+      
+      if (error) throw error;
+      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+      handleSupabaseError(error, 'UPDATE', `users/${user.id}`);
     } finally {
       setIsSaving(false);
     }
