@@ -13,7 +13,10 @@ export default defineConfig(({ mode }) => {
       plugins: [react(), tailwindcss()],
       define: {
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '')
+        'process.env.AI_KEY': JSON.stringify(env.AI_KEY || process.env.AI_KEY || ''),
+        'process.env.MY_KEY': JSON.stringify(env.MY_KEY || process.env.MY_KEY || ''),
+        'process.env.THINKFLOW_KEY': JSON.stringify(env.THINKFLOW_KEY || process.env.THINKFLOW_KEY || ''),
+        'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || '')
       },
       resolve: {
         alias: {
