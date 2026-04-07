@@ -74,6 +74,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         setError('Password is too weak. Please use at least 6 characters.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('Unauthorized Domain: This domain is not allowed for authentication. Please add your app domain to the "Authorized domains" list in the Firebase Console (Authentication > Settings).');
       } else if (err.code === 'auth/user-not-found') {
         setError('Account not found. If you were using the previous version, please register a new account (we have migrated to a new secure backend).');
       } else if (err.code === 'auth/wrong-password') {
