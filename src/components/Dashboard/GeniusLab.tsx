@@ -148,8 +148,24 @@ export const GeniusLab: React.FC = () => {
                 </Button>
 
                 {healthStatus && (
-                  <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left overflow-auto max-h-40">
-                    <pre>{JSON.stringify(healthStatus, null, 2)}</pre>
+                  <div className="space-y-4 w-full">
+                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left overflow-auto max-h-40">
+                      <pre>{JSON.stringify(healthStatus, null, 2)}</pre>
+                    </div>
+                    
+                    {healthStatus.status === 'online' && (
+                      <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-xs text-green-400">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        <span>Сервер доступен (v{healthStatus.version})</span>
+                      </div>
+                    )}
+
+                    {healthStatus.hasKey === false && (
+                      <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-center gap-3">
+                        <Zap className="w-4 h-4" />
+                        <span>Критическая ошибка: API_KEY не найден на сервере. Проверьте настройки Secrets.</span>
+                      </div>
+                    )}
                   </div>
                 )}
 

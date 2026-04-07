@@ -11,50 +11,39 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode...`);
-  const apiKey = process.env.API_KEY || process.env.AI_KEY || process.env.GEMINI_API_KEY;
-  if (apiKey) {
-    console.log(`API Key found! Starts with: ${apiKey.substring(0, 4)}... (length: ${apiKey.length})`);
-  } else {
-    console.warn("No API Key found in environment variables!");
-  }
-
-  // Request Logger
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-  });
-
+  console.log(`[SERVER] Initializing ThinkFlow Backend...`);
+  
   app.use(express.json({ limit: '10mb' }));
 
-  // API Request Logger (more detailed)
-  app.use("/api", (req, res, next) => {
-    console.log(`[API] ${new Date().toISOString()} - ${req.method} ${req.url}`);
+  // --- API ROUTER ---
+  const apiRouter = express.Router();
+
+  // Middleware to ensure JSON response for all API calls
+  apiRouter.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    console.log(`[API REQUEST] ${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
   });
 
-  // Health check
-  app.get("/api/health", (req, res) => {
+  // Health check with detailed info
+  apiRouter.get("/health", (req, res) => {
+    const apiKey = process.env.API_KEY || process.env.AI_KEY || process.env.GEMINI_API_KEY;
     res.json({ 
-      status: "ok", 
-      env: process.env.NODE_ENV,
-      time: new Date().toISOString(),
-      hasApiKey: !!(process.env.API_KEY || process.env.AI_KEY || process.env.GEMINI_API_KEY)
+      status: "online", 
+      version: "2.0.0-router-fix",
+      hasKey: !!apiKey,
+      keyPrefix: apiKey ? apiKey.substring(0, 4) : null,
+      env: process.env.NODE_ENV || 'development'
     });
   });
 
-  // API Route for Gemini
-  app.post("/api/ai/generate", async (req, res) => {
-    console.log("Processing AI request...");
+  // AI Generation Route
+  apiRouter.post("/ai/generate", async (req, res) => {
     const { model, contents, config, systemInstruction } = req.body;
-    
     const apiKey = process.env.API_KEY || process.env.AI_KEY || process.env.GEMINI_API_KEY;
     
     if (!apiKey) {
-      console.error("CRITICAL: API Key missing in server environment");
-      return res.status(500).json({ 
-        error: "API Key is missing on the server. Please check platform settings." 
-      });
+      return res.status(500).json({ error: "API_KEY is missing on server. Check platform settings." });
     }
 
     try {
@@ -70,42 +59,24 @@ async function startServer() {
       });
 
       const response = await result.response;
-      const text = response.text();
-      console.log("AI generation successful");
-      res.json({ text });
+      res.json({ text: response.text() });
     } catch (error: any) {
-      console.error("Server-side Gemini Error:", error);
-      res.status(500).json({ 
-        error: error.message || "An error occurred during AI generation." 
-      });
+      console.error("[AI ERROR]", error);
+      res.status(500).json({ error: error.message || "AI Generation failed" });
     }
   });
 
-  // Catch-all for API routes that don't exist
-  app.all("/api/*", (req, res) => {
-    console.warn(`404 - API route not found: ${req.method} ${req.url}`);
-    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
-  });
+  // Mount API Router
+  app.use("/api", apiRouter);
 
-  // Global Error Handler for API
-  app.use("/api", (err: any, req: any, res: any, next: any) => {
-    console.error("[API ERROR]", err);
-    res.status(err.status || 500).json({ 
-      error: err.message || "Internal Server Error",
-      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-  });
-
-  // Vite middleware for development
+  // --- VITE / STATIC ASSETS ---
   if (process.env.NODE_ENV !== "production") {
-    console.log("Using Vite middleware...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    console.log("Serving static files from dist...");
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -114,8 +85,10 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`[SERVER] ThinkFlow is live on port ${PORT}`);
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("[FATAL ERROR]", err);
+});
