@@ -7,9 +7,9 @@ const getApiKey = () => {
   const manualKey = typeof window !== 'undefined' ? localStorage.getItem('THINKFLOW_MANUAL_KEY') : null;
   
   return (manualKey ||
-          import.meta.env.VITE_GEMINI_API_KEY || 
-          import.meta.env.VITE_AI_KEY || 
           import.meta.env.VITE_API_KEY || 
+          import.meta.env.VITE_AI_KEY || 
+          import.meta.env.VITE_GEMINI_API_KEY || 
           "").trim();
 };
 

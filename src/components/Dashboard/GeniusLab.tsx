@@ -121,14 +121,14 @@ export const GeniusLab: React.FC = () => {
                 <Zap className="w-4 h-4 shrink-0" />
                 {error}
               </div>
-              {error.includes("API Key") && (
+              {(error.toLowerCase().includes("api key") || error.toLowerCase().includes("permission")) && (
                 <div className="text-xs text-gray-400 font-medium space-y-4 text-center w-full">
                   <div className="space-y-2">
                     <p className="text-white font-black uppercase tracking-widest text-[10px]">Инструкция по исправлению:</p>
                     <ol className="list-decimal list-inside text-left space-y-1 mx-auto max-w-xs bg-black/20 p-4 rounded-xl border border-white/5">
                       <li>Нажмите на <b>⚙️ Settings</b> (слева внизу).</li>
                       <li>Выберите вкладку <b>Secrets</b>.</li>
-                      <li>Добавьте <b>AI_KEY</b> и ваш ключ.</li>
+                      <li>Добавьте <b>GEMINI_API_KEY</b> и ваш новый ключ.</li>
                       <li>Нажмите <b>Save</b> и <b>обновите страницу (F5)</b>.</li>
                     </ol>
                   </div>
