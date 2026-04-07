@@ -30,6 +30,9 @@ export interface UserProfile {
   level: number;
   role: 'student' | 'admin';
   theme: 'light' | 'dark';
+  geniusMode?: boolean;
+  learningDepth?: 'Surface' | 'Deep' | 'Architect';
+  explanationStyle?: 'Metaphorical' | 'Technical' | 'Simple';
 }
 
 export interface ChatSession {

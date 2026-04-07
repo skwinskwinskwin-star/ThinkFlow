@@ -2,7 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,15 +49,21 @@ async function startServer() {
     }
 
     try {
-      const genAI = new GoogleGenAI({ apiKey });
-      const response = await genAI.models.generateContent({
-        model,
-        contents,
-        config: { ...config, systemInstruction }
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const generativeModel = genAI.getGenerativeModel({ 
+        model: model || "gemini-1.5-flash",
+        systemInstruction
       });
 
+      const result = await generativeModel.generateContent({
+        contents,
+        generationConfig: config
+      });
+
+      const response = await result.response;
+      const text = response.text();
       console.log("AI generation successful");
-      res.json({ text: response.text });
+      res.json({ text });
     } catch (error: any) {
       console.error("Server-side Gemini Error:", error);
       res.status(500).json({ 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Settings as SettingsIcon, Moon, Sun, Globe, Shield, Bell, Trash2, LogOut, Sparkles } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Sun, Globe, Shield, Bell, Trash2, LogOut, Zap } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +11,7 @@ import { useState } from 'react';
 export const Settings: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const { signOut, deleteAccount } = useAuth();
+  const { signOut, deleteAccount, geniusMode, setGeniusMode, profile, updateProfileData } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
@@ -127,18 +127,84 @@ export const Settings: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 bg-amber-600/10 rounded-2xl flex items-center justify-center text-amber-500">
-                <Sparkles className="w-6 h-6" />
+                <Zap className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-black uppercase text-sm tracking-tighter text-[var(--text)]">Genius API Key</h4>
-                <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">Configure your AI brain</p>
+                <h4 className="font-black uppercase text-sm tracking-tighter text-[var(--text)]">{t.geniusMode}</h4>
+                <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">Enable advanced AI reasoning and metaphors</p>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <span className="text-[9px] font-black uppercase text-amber-500/60 tracking-widest">Set in Platform Settings</span>
-              <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-500">
-                GEMINI_API_KEY
+            <button 
+              onClick={() => setGeniusMode(!geniusMode)}
+              className={`
+                w-16 h-8 rounded-full transition-all relative p-1
+                ${geniusMode ? 'bg-amber-500' : 'bg-slate-200'}
+              `}
+            >
+              <div className={`
+                w-6 h-6 bg-white rounded-full shadow-lg transition-transform
+                ${geniusMode ? 'translate-x-8' : 'translate-x-0'}
+              `} />
+            </button>
+          </div>
+
+          <div className="h-px bg-[var(--border)]" />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-indigo-500">
+                <Shield className="w-6 h-6" />
               </div>
+              <div>
+                <h4 className="font-black uppercase text-sm tracking-tighter text-[var(--text)]">Learning Depth</h4>
+                <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">How deep should the AI go into concepts?</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {['Surface', 'Deep', 'Architect'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => updateProfileData({ learningDepth: d as any })}
+                  className={`
+                    px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                    ${profile?.learningDepth === d 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-[var(--input)] text-[var(--muted)] hover:bg-[var(--border)]'}
+                  `}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-px bg-[var(--border)]" />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 bg-emerald-600/10 rounded-2xl flex items-center justify-center text-emerald-500">
+                <Globe className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-black uppercase text-sm tracking-tighter text-[var(--text)]">Explanation Style</h4>
+                <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">Your preferred way of learning</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {['Metaphorical', 'Technical', 'Simple'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => updateProfileData({ explanationStyle: s as any })}
+                  className={`
+                    px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                    ${profile?.explanationStyle === s 
+                      ? 'bg-emerald-600 text-white' 
+                      : 'bg-[var(--input)] text-[var(--muted)] hover:bg-[var(--border)]'}
+                  `}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
         </Card>

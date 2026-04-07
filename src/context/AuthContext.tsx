@@ -26,6 +26,7 @@ interface AuthContextType {
   isAuthReady: boolean;
   geniusMode: boolean;
   setGeniusMode: (mode: boolean) => void;
+  updateProfileData: (data: Partial<UserProfile>) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -40,7 +41,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [geniusMode, setGeniusMode] = useState(true);
+
+  const geniusMode = profile?.geniusMode ?? true;
+
+  const setGeniusMode = async (mode: boolean) => {
+    if (!user) return;
+    await updateProfileData({ geniusMode: mode });
+  };
+
+  const updateProfileData = async (data: Partial<UserProfile>) => {
+    if (!user) return;
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, data, { merge: true });
+    } catch (error) {
+      console.error("Update profile error:", error);
+      throw error;
+    }
+  };
 
   // Test connection to Firestore
   useEffect(() => {
@@ -120,7 +138,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'student',
         language: 'en',
         theme: 'light',
-        bio: ''
+        bio: '',
+        geniusMode: true,
+        learningDepth: 'Deep',
+        explanationStyle: 'Metaphorical'
       };
       
       await setDoc(doc(db, 'users', newUser.uid), profileData);
@@ -180,7 +201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'student',
             language: 'en',
             theme: 'light',
-            bio: ''
+            bio: '',
+            geniusMode: true,
+            learningDepth: 'Deep',
+            explanationStyle: 'Metaphorical'
           };
           
           setDoc(userDocRef, newUser).catch(err => {
@@ -207,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthReady, 
       geniusMode, 
       setGeniusMode, 
+      updateProfileData,
       signIn, 
       signUp, 
       signInWithGoogle, 
