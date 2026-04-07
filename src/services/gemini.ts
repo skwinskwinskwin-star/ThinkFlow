@@ -8,8 +8,11 @@ const getApiKey = () => {
   
   return (manualKey ||
           import.meta.env.VITE_API_KEY || 
+          process.env.VITE_API_KEY ||
           import.meta.env.VITE_AI_KEY || 
+          process.env.VITE_AI_KEY ||
           import.meta.env.VITE_GEMINI_API_KEY || 
+          process.env.VITE_GEMINI_API_KEY ||
           "").trim();
 };
 
