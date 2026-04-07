@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Settings as SettingsIcon, Moon, Sun, Globe, Shield, Bell, Trash2, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Sun, Globe, Shield, Bell, Trash2, LogOut, Sparkles } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -120,6 +120,26 @@ export const Settings: React.FC = () => {
             <button className="w-16 h-8 bg-[var(--input)] rounded-full relative p-1 cursor-not-allowed opacity-50">
               <div className="w-6 h-6 bg-white rounded-full shadow-lg" />
             </button>
+          </div>
+
+          <div className="h-px bg-[var(--border)]" />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 bg-amber-600/10 rounded-2xl flex items-center justify-center text-amber-500">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-black uppercase text-sm tracking-tighter text-[var(--text)]">Genius API Key</h4>
+                <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">Configure your AI brain</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className="text-[9px] font-black uppercase text-amber-500/60 tracking-widest">Set in Platform Settings</span>
+              <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-500">
+                GEMINI_API_KEY
+              </div>
+            </div>
           </div>
         </Card>
 

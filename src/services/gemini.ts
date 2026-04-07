@@ -49,7 +49,8 @@ export async function askThinkFlowAI(
   history: Message[] = [],
   attachment?: { data: string; mimeType: string }
 ) {
-  if (!process.env.GEMINI_API_KEY) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === "") {
     return "AI is currently unavailable. Please ensure the GEMINI_API_KEY is set in the platform settings.";
   }
 

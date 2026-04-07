@@ -105,7 +105,8 @@ export const TRANSLATIONS = {
     geniusMode: "Genius Mode",
     searchThoughts: "Search thoughts...",
     globalXP: "Global XP",
-    masterTopic: "What do you want to master?"
+    masterTopic: "What do you want to master?",
+    educationBroken: "Traditional education is broken. It rewards memory, not logic. ThinkFlow changes the game, using AI to map complex concepts directly onto your neural pathways."
   },
   ru: {
     hero: "Думай лучше, а не быстрее.",
@@ -191,7 +192,8 @@ export const TRANSLATIONS = {
     geniusMode: "Режим Гения",
     searchThoughts: "Поиск мыслей...",
     globalXP: "Глобальный XP",
-    masterTopic: "Что вы хотите изучить?"
+    masterTopic: "Что вы хотите изучить?",
+    educationBroken: "Традиционное образование сломано. Оно вознаграждает память, а не логику. ThinkFlow меняет правила игры, используя ИИ для отображения сложных концепций непосредственно на ваши нейронные пути."
   },
   uz: {
     hero: "Yaxshiroq o'ylang, tezroq emas.",
@@ -277,6 +279,7 @@ export const TRANSLATIONS = {
     geniusMode: "Daho rejimi",
     searchThoughts: "Fikrlarni qidirish...",
     globalXP: "Global XP",
-    masterTopic: "Nimani o'rganmoqchisiz?"
+    masterTopic: "Nimani o'rganmoqchisiz?",
+    educationBroken: "An'anaviy ta'lim tizimi buzilgan. U mantiqni emas, yodlashni rag'batlantiradi. ThinkFlow o'yin qoidalarini o'zgartiradi va murakkab tushunchalarni to'g'ridan-to'g'ri neyron yo'llaringizga xaritada ko'rsatish uchun sun'iy intellektdan foydalanadi."
   }
 };

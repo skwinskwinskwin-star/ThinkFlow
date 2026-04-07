@@ -4,7 +4,8 @@ import { Zap, CheckCircle2, Circle, Trophy, Clock, Plus, Loader2 } from 'lucide-
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Task } from '../../types';
-import { supabase, handleSupabaseError } from '../../services/supabase';
+import { db } from '../../lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
@@ -18,52 +19,28 @@ export const Tasks: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const fetchTasks = async () => {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('userId', user.id)
-        .order('createdAt', { ascending: false });
-      
-      if (error) {
-        handleSupabaseError(error, 'LIST', 'tasks');
-      } else {
-        setTasks(data as Task[]);
-      }
+    const tasksRef = collection(db, 'tasks');
+    const q = query(tasksRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const tasksData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Task));
+      setTasks(tasksData);
       setLoading(false);
-    };
+    }, (error) => {
+      console.error("Tasks fetch error:", error);
+      setLoading(false);
+    });
 
-    fetchTasks();
-
-    const channel = supabase
-      .channel('public:tasks')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'tasks',
-        filter: `userId=eq.${user.id}`
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setTasks(prev => [payload.new as Task, ...prev]);
-        } else if (payload.eventType === 'UPDATE') {
-          setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new as Task : t));
-        } else if (payload.eventType === 'DELETE') {
-          setTasks(prev => prev.filter(t => t.id === payload.old.id));
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => unsubscribe();
   }, [user]);
 
   const generateTask = async () => {
     if (!user || !profile) return;
     setIsGenerating(true);
 
-    // In a real app, this would call Gemini to generate a personalized task
-    // For now, we'll simulate it with a few templates
     const templates = [
       { title: "Explain Momentum", desc: "Explain how momentum works in football using metaphors.", diff: "Medium", xp: 50 },
       { title: "Solve for X", desc: "Create a real-world scenario where you need to solve an algebraic equation.", diff: "Easy", xp: 30 },
@@ -73,8 +50,8 @@ export const Tasks: React.FC = () => {
     const template = templates[Math.floor(Math.random() * templates.length)];
 
     try {
-      const { error } = await supabase.from('tasks').insert({
-        userId: user.id,
+      await addDoc(collection(db, 'tasks'), {
+        userId: user.uid,
         title: template.title,
         description: template.desc,
         difficulty: template.diff,
@@ -82,9 +59,8 @@ export const Tasks: React.FC = () => {
         xpReward: template.xp,
         createdAt: Date.now()
       });
-      if (error) throw error;
     } catch (error) {
-      handleSupabaseError(error, 'CREATE', 'tasks');
+      console.error("Task generation error:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -94,21 +70,10 @@ export const Tasks: React.FC = () => {
     if (!user || !profile || task.status === 'completed') return;
 
     try {
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .update({ status: 'completed' })
-        .eq('id', task.id);
-      
-      if (taskError) throw taskError;
-
-      const { error: userError } = await supabase
-        .from('users')
-        .update({ xp: (profile.xp || 0) + task.xpReward })
-        .eq('uid', user.id);
-      
-      if (userError) throw userError;
+      await updateDoc(doc(db, 'tasks', task.id), { status: 'completed' });
+      await updateDoc(doc(db, 'users', user.uid), { xp: (profile.xp || 0) + task.xpReward });
     } catch (error) {
-      handleSupabaseError(error, 'UPDATE', `tasks/${task.id}`);
+      console.error("Task completion error:", error);
     }
   };
 

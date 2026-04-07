@@ -1,7 +1,22 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '../services/supabase';
+import { 
+  User, 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signInWithPopup, 
+  signOut as firebaseSignOut,
+  updateProfile
+} from 'firebase/auth';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  onSnapshot,
+  getDocFromServer
+} from 'firebase/firestore';
+import { auth, db, googleProvider } from '../lib/firebase';
 import { UserProfile } from '../types';
 
 interface AuthContextType {
@@ -27,6 +42,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [geniusMode, setGeniusMode] = useState(true);
 
+  // Test connection to Firestore
+  useEffect(() => {
+    async function testConnection() {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if(error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration. The client is offline.");
+        }
+      }
+    }
+    testConnection();
+  }, []);
+
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     
@@ -34,9 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (email === 'demo@thinkflow.ai' && password === 'demo123456') {
       console.log('Entering Demo Genius Mode...');
       const mockUser = {
-        id: 'demo-uid-123',
+        uid: 'demo-uid-123',
         email: 'demo@thinkflow.ai',
-        user_metadata: { name: 'Demo Genius' }
+        displayName: 'Demo Genius'
       } as unknown as User;
       
       setUser(mockUser);
@@ -59,37 +88,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      setUser(data.user);
+      await signInWithEmailAndPassword(auth, email, password);
     } finally {
       setLoading(false);
     }
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    if (error) throw error;
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+      throw error;
+    }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name }
-      }
-    });
-    if (error) throw error;
-    
-    if (data.user) {
-      const newUser: UserProfile = {
-        uid: data.user.id,
+    try {
+      const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(newUser, { displayName: name });
+      
+      const profileData: UserProfile = {
+        uid: newUser.uid,
         email,
         name,
         age: 15,
@@ -102,35 +122,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         theme: 'light',
         bio: ''
       };
-      try {
-        const { error: profileError } = await supabase.from('users').insert(newUser);
-        if (profileError) {
-          console.warn("Could not create profile in 'users' table. This is likely because the table doesn't exist yet.", profileError);
-        }
-      } catch (e) {
-        console.error("Profile creation failed:", e);
-      }
+      
+      await setDoc(doc(db, 'users', newUser.uid), profileData);
+    } catch (error) {
+      console.error("Sign-Up Error:", error);
+      throw error;
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await firebaseSignOut(auth);
   };
 
   const deleteAccount = async () => {
     if (!user) return;
     try {
-      // In Supabase, deleting an account usually requires a service role or a specific API call
       // For this demo, we'll just mark it as deleted in the profile
-      const { error: profileError } = await supabase
-        .from('users')
-        .update({ bio: (profile?.bio || '') + ' [DELETED]' })
-        .eq('uid', user.id);
-      
-      if (profileError) throw profileError;
-      
-      // Sign out
+      await setDoc(doc(db, 'users', user.uid), { bio: (profile?.bio || '') + ' [DELETED]' }, { merge: true });
       await signOut();
     } catch (error) {
       console.error("Delete account error:", error);
@@ -139,91 +147,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       setIsAuthReady(true);
-      if (!session) {
+      if (!currentUser) {
         setProfile(null);
         setLoading(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsAuthReady(true);
-      if (!session) {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('uid', user.id)
-          .single();
-        
-        if (error) {
-          if (error.code === 'PGRST116' || error.message?.includes('relation "public.users" does not exist')) {
-            // Profile doesn't exist or table doesn't exist, create a local fallback
-            const newUser: UserProfile = {
-              uid: user.id,
-              email: user.email || '',
-              name: user.user_metadata?.name || 'New User',
-              age: 15,
-              studentClass: '9A',
-              interests: [],
-              xp: 0,
-              level: 1,
-              role: 'student',
-              language: 'en',
-              theme: 'light',
-              bio: ''
-            };
-            
-            // Try to insert if table exists, otherwise just set local state
-            try {
-              const { error: insertError } = await supabase.from('users').insert(newUser);
-              if (insertError) {
-                console.warn("Table 'users' might be missing. Using local profile state.");
-              }
-            } catch (e) {}
-            
-            setProfile(newUser);
-          } else {
-            console.error("Profile fetch error:", error);
-          }
+    if (user && user.uid !== 'demo-uid-123') {
+      const userDocRef = doc(db, 'users', user.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as UserProfile);
         } else {
-          setProfile(data as UserProfile);
+          // Profile doesn't exist, create a fallback
+          const newUser: UserProfile = {
+            uid: user.uid,
+            email: user.email || '',
+            name: user.displayName || 'New User',
+            age: 15,
+            studentClass: '9A',
+            interests: [],
+            xp: 0,
+            level: 1,
+            role: 'student',
+            language: 'en',
+            theme: 'light',
+            bio: ''
+          };
+          
+          setDoc(userDocRef, newUser).catch(err => {
+            console.warn("Could not create initial profile in Firestore:", err);
+          });
+          
+          setProfile(newUser);
         }
         setLoading(false);
-      };
+      }, (error) => {
+        console.error("Profile fetch error:", error);
+        setLoading(false);
+      });
 
-      fetchProfile();
-
-      // Subscribe to profile changes
-      const channel = supabase
-        .channel('public:users')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'users',
-          filter: `uid=eq.${user.id}`
-        }, (payload) => {
-          setProfile(payload.new as UserProfile);
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => unsubscribe();
     }
   }, [user]);
 

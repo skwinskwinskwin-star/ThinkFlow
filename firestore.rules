@@ -1,0 +1,183 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (matches request.auth.uid)
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - name: string (required)
+    //   - age: number
+    //   - studentClass: string
+    //   - interests: list
+    //   - xp: number
+    //   - level: number
+    //   - role: string ('student', 'admin')
+    //   - theme: string ('light', 'dark')
+    //   - bio: string
+    //
+    // Collection: sessions
+    // Document ID: {sessionId}
+    // Fields:
+    //   - userId: string (required)
+    //   - title: string
+    //   - type: string ('teacher', 'coach', 'genius')
+    //   - messages: list
+    //   - lastUpdated: number
+    //
+    // Collection: reviews
+    // Document ID: {reviewId}
+    // Fields:
+    //   - userId: string (required)
+    //   - userName: string
+    //   - text: string
+    //   - rating: number
+    //   - timestamp: number
+    //
+    // Collection: tasks
+    // Document ID: {taskId}
+    // Fields:
+    //   - userId: string (required)
+    //   - title: string
+    //   - description: string
+    //   - difficulty: string ('Easy', 'Medium', 'Challenge')
+    //   - status: string ('pending', 'completed')
+    //   - xpReward: number
+    //   - createdAt: number
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "skwinskwinskwin@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email', 'name']) &&
+             data.uid is string &&
+             data.email is string && isValidEmail(data.email) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (!('age' in data) || data.age is number) &&
+             (!('studentClass' in data) || data.studentClass is string) &&
+             (!('interests' in data) || data.interests is list) &&
+             (!('xp' in data) || data.xp is number) &&
+             (!('level' in data) || data.level is number) &&
+             (!('role' in data) || data.role in ['student', 'admin']) &&
+             (!('theme' in data) || data.theme in ['light', 'dark']) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() < 1000));
+    }
+
+    function isValidChatSession(data) {
+      return hasRequiredFields(['userId', 'messages', 'lastUpdated']) &&
+             data.userId is string &&
+             data.messages is list &&
+             data.lastUpdated is number &&
+             (!('title' in data) || (data.title is string && data.title.size() < 200)) &&
+             (!('type' in data) || data.type in ['teacher', 'coach', 'genius', 'trainer']);
+    }
+
+    function isValidReview(data) {
+      return hasRequiredFields(['userId', 'userName', 'text', 'rating', 'timestamp']) &&
+             data.userId is string &&
+             data.userName is string &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 2000 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.timestamp is number;
+    }
+
+    function isValidTask(data) {
+      return hasRequiredFields(['userId', 'title', 'description', 'difficulty', 'status', 'xpReward', 'createdAt']) &&
+             data.userId is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.description is string && data.description.size() < 1000 &&
+             data.difficulty in ['Easy', 'Medium', 'Challenge'] &&
+             data.status in ['pending', 'completed'] &&
+             data.xpReward is number &&
+             data.createdAt is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == 'student' || isAdmin());
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && 
+                       (request.resource.data.role == resource.data.role || isAdmin())) || 
+                      isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidChatSession(request.resource.data);
+      allow update: if isAuthenticated() && request.resource.data.userId == request.auth.uid && 
+                      resource.data.userId == request.auth.uid && isValidChatSession(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true; // Publicly readable
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidReview(request.resource.data);
+      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid && 
+                       request.resource.data.userId == request.auth.uid && isValidReview(request.resource.data)) || 
+                      isAdmin();
+      allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidTask(request.resource.data);
+      allow update: if isAuthenticated() && request.resource.data.userId == request.auth.uid && 
+                      resource.data.userId == request.auth.uid && isValidTask(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /todos/{todoId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && 
+                      request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

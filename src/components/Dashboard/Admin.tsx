@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Users, MessageSquare, Trash2, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, handleSupabaseError } from '../../services/supabase';
+import { db } from '../../lib/firebase';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { UserProfile, Review } from '../../types';
 import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
@@ -17,67 +18,44 @@ export const Admin: React.FC = () => {
   useEffect(() => {
     if (profile?.role !== 'admin') return;
 
-    const fetchUsers = async () => {
-      const { data, error } = await supabase.from('users').select('*');
-      if (error) {
-        handleSupabaseError(error, 'LIST', 'users');
-      } else {
-        setUsers(data as UserProfile[]);
-      }
-    };
+    const usersRef = collection(db, 'users');
+    const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => doc.data() as UserProfile);
+      setUsers(usersData);
+    });
 
-    const fetchReviews = async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .order('timestamp', { ascending: false });
-      
-      if (error) {
-        handleSupabaseError(error, 'LIST', 'reviews');
-      } else {
-        setReviews(data as Review[]);
-      }
+    const reviewsRef = collection(db, 'reviews');
+    const qReviews = query(reviewsRef, orderBy('timestamp', 'desc'));
+    const unsubscribeReviews = onSnapshot(qReviews, (snapshot) => {
+      const reviewsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Review));
+      setReviews(reviewsData);
       setLoading(false);
-    };
-
-    fetchUsers();
-    fetchReviews();
-
-    const usersChannel = supabase
-      .channel('public:users_admin')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchUsers)
-      .subscribe();
-
-    const reviewsChannel = supabase
-      .channel('public:reviews_admin')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, fetchReviews)
-      .subscribe();
+    });
 
     return () => {
-      supabase.removeChannel(usersChannel);
-      supabase.removeChannel(reviewsChannel);
+      unsubscribeUsers();
+      unsubscribeReviews();
     };
   }, [profile]);
 
   const deleteReview = async (id: string) => {
     try {
-      const { error } = await supabase.from('reviews').delete().eq('id', id);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'reviews', id));
     } catch (error) {
-      handleSupabaseError(error, 'DELETE', `reviews/${id}`);
+      console.error("Delete review error:", error);
     }
   };
 
   const toggleAdmin = async (uid: string, currentRole: string) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ role: currentRole === 'admin' ? 'student' : 'admin' })
-        .eq('uid', uid);
-      
-      if (error) throw error;
+      await updateDoc(doc(db, 'users', uid), { 
+        role: currentRole === 'admin' ? 'student' : 'admin' 
+      });
     } catch (error) {
-      handleSupabaseError(error, 'UPDATE', `users/${uid}`);
+      console.error("Toggle admin error:", error);
     }
   };
 

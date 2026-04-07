@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile data including learning progress and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user." },
+        "name": { "type": "string", "description": "The user's full name." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "age": { "type": "number", "description": "The user's age." },
+        "studentClass": { "type": "string", "description": "The student's class (e.g., 9A)." },
+        "interests": { "type": "array", "items": { "type": "string" }, "description": "List of user interests." },
+        "xp": { "type": "number", "description": "The user's experience points." },
+        "level": { "type": "number", "description": "The user's current level." },
+        "role": { "type": "string", "enum": ["student", "teacher", "admin"], "description": "The user's role." },
+        "language": { "type": "string", "enum": ["en", "ru", "uz"], "description": "Preferred language." },
+        "theme": { "type": "string", "enum": ["light", "dark"], "description": "Preferred theme." },
+        "bio": { "type": "string", "description": "User's short biography." }
+      },
+      "required": ["uid", "email", "name"]
+    },
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "A conversation session between a user and the AI.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique session ID." },
+        "userId": { "type": "string", "description": "ID of the user who owns the session." },
+        "title": { "type": "string", "description": "Title of the conversation." },
+        "type": { "type": "string", "enum": ["teacher", "coach", "genius"], "description": "Type of AI model used." },
+        "messages": { "type": "array", "description": "List of messages in the session." },
+        "lastUpdated": { "type": "number", "description": "Timestamp of the last message." }
+      },
+      "required": ["userId", "messages", "lastUpdated"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "User review of the platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "text": { "type": "string" },
+        "rating": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["userId", "userName", "text", "rating", "timestamp"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Personalized learning task.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Challenge"] },
+        "status": { "type": "string", "enum": ["pending", "completed"] },
+        "xpReward": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "description", "difficulty", "status", "xpReward", "createdAt"]
+    },
+    "Todo": {
+      "title": "Todo",
+      "description": "User goal or todo item.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "is_completed": { "type": "boolean" },
+        "created_at": { "type": "number" }
+      },
+      "required": ["userId", "name", "is_completed", "created_at"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of user profiles."
+    },
+    "/sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Collection of chat sessions."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Collection of user reviews."
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Collection of user tasks."
+    },
+    "/todos/{todoId}": {
+      "schema": "Todo",
+      "description": "Collection of user todos."
+    }
+  }
+}

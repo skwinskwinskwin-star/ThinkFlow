@@ -1,79 +1,80 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, CheckCircle2, Circle } from 'lucide-react';
-import { supabase } from '../services/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 interface Todo {
-  id: number;
+  id: string;
   name: string;
   is_completed: boolean;
+  userId: string;
+  created_at: number;
 }
 
 export const Todos: React.FC = () => {
+  const { user } = useAuth();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
-  const fetchTodos = async () => {
-    const { data, error } = await supabase
-      .from('todos')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching todos:', error);
-    } else {
-      setTodos(data || []);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchTodos();
-  }, []);
+    if (!user) return;
+
+    const todosRef = collection(db, 'todos');
+    const q = query(todosRef, where('userId', '==', user.uid), orderBy('created_at', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const todosData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Todo));
+      setTodos(todosData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Todos fetch error:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const addTodo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTodo.trim()) return;
+    if (!newTodo.trim() || !user) return;
 
     setIsAdding(true);
-    const { error } = await supabase
-      .from('todos')
-      .insert([{ name: newTodo.trim(), is_completed: false }]);
-
-    if (error) {
-      console.error('Error adding todo:', error);
-    } else {
+    try {
+      await addDoc(collection(db, 'todos'), {
+        userId: user.uid,
+        name: newTodo.trim(),
+        is_completed: false,
+        created_at: Date.now()
+      });
       setNewTodo('');
-      fetchTodos();
+    } catch (error) {
+      console.error('Error adding todo:', error);
+    } finally {
+      setIsAdding(false);
     }
-    setIsAdding(false);
   };
 
-  const toggleTodo = async (id: number, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('todos')
-      .update({ is_completed: !currentStatus })
-      .eq('id', id);
-
-    if (error) {
+  const toggleTodo = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'todos', id), { is_completed: !currentStatus });
+    } catch (error) {
       console.error('Error updating todo:', error);
-    } else {
-      fetchTodos();
     }
   };
 
-  const deleteTodo = async (id: number) => {
-    const { error } = await supabase
-      .from('todos')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+  const deleteTodo = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'todos', id));
+    } catch (error) {
       console.error('Error deleting todo:', error);
-    } else {
-      fetchTodos();
     }
   };
 

@@ -6,7 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { AIModelType, Message, Attachment, ChatSession } from '../../types';
 import { askThinkFlowAI } from '../../services/gemini';
-import { supabase, handleSupabaseError } from '../../services/supabase';
+import { db } from '../../lib/firebase';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot, collection, addDoc } from 'firebase/firestore';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
@@ -34,37 +35,17 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
   useEffect(() => {
     if (!user || !sessionId) return;
 
-    const fetchSession = async () => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single();
-      
-      if (error) {
-        handleSupabaseError(error, 'GET', `sessions/${sessionId}`);
-      } else if (data) {
-        setMessages((data as ChatSession).messages);
+    const sessionRef = doc(db, 'sessions', sessionId);
+    
+    const unsubscribe = onSnapshot(sessionRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setMessages((docSnap.data() as ChatSession).messages);
       }
-    };
+    }, (error) => {
+      console.error("Chat session fetch error:", error);
+    });
 
-    fetchSession();
-
-    const channel = supabase
-      .channel(`session:${sessionId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'sessions',
-        filter: `id=eq.${sessionId}`
-      }, (payload) => {
-        setMessages((payload.new as ChatSession).messages);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => unsubscribe();
   }, [user, sessionId]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,41 +104,25 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
       
       if (!sessionId) {
         const sessionData = {
-          userId: user.id,
+          userId: user.uid,
           title: input.slice(0, 30) || "New Conversation",
           type,
           messages: finalMessages,
           lastUpdated: Date.now()
         };
-        const { data, error } = await supabase
-          .from('sessions')
-          .insert(sessionData)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        if (data) setSessionId(data.id);
+        const docRef = await addDoc(collection(db, 'sessions'), sessionData);
+        setSessionId(docRef.id);
       } else {
-        const { error } = await supabase
-          .from('sessions')
-          .update({
-            messages: finalMessages,
-            lastUpdated: Date.now()
-          })
-          .eq('id', sessionId);
-        
-        if (error) throw error;
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          messages: finalMessages,
+          lastUpdated: Date.now()
+        });
       }
 
       // Update XP
-      const { error: xpError } = await supabase
-        .from('users')
-        .update({
-          xp: (profile.xp || 0) + 15
-        })
-        .eq('uid', user.id);
-      
-      if (xpError) throw xpError;
+      await updateDoc(doc(db, 'users', user.uid), {
+        xp: (profile.xp || 0) + 15
+      });
 
     } catch (error) {
       console.error("Chat error:", error);

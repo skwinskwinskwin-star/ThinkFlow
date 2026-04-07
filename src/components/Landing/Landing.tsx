@@ -147,7 +147,7 @@ export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20">
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden py-20">
         <motion.div 
           style={{ opacity, scale: springScale, y }}
           className="relative z-10 text-center px-6"
@@ -156,22 +156,22 @@ export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-400 text-[9px] font-black uppercase tracking-[0.4em] mb-8 backdrop-blur-md"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6 backdrop-blur-md"
           >
             <Zap className="w-3 h-3 fill-current" />
             {t.nextGenAI}
           </motion.div>
           
-          <h1 className="text-[12vw] md:text-[10rem] font-black uppercase tracking-tighter leading-[0.8] mb-6">
+          <h1 className="text-[12vw] md:text-[10rem] font-black uppercase tracking-tighter leading-[0.8] mb-4">
             <span className="block text-white">{t.beyondGenius.split(' ')[0]}</span>
             <span className="block bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">{t.beyondGenius.split(' ')[1] || 'GENIUS'}</span>
           </h1>
           
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-400 font-medium mb-8 leading-relaxed">
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-400 font-medium mb-6 leading-relaxed">
             {t.heroSub}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button 
               onClick={onGetStarted} 
               className="h-20 px-12 rounded-2xl text-xl gap-4 bg-indigo-600 hover:bg-indigo-500 shadow-[0_20px_50px_rgba(79,70,229,0.3)] group"
@@ -225,7 +225,7 @@ export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {features.map((feature, i) => (
               <FeatureCard key={i} feature={feature} index={i} />
             ))}
@@ -246,11 +246,7 @@ export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
                 {t.startFlowing.split(' ')[0]} <span className="text-purple-500">{t.startFlowing.split(' ')[1]}</span>
               </h2>
               <p className="text-xl text-white/50 leading-relaxed font-medium">
-                {language === 'ru' 
-                  ? 'Традиционное образование сломано. Оно вознаграждает память, а не логику. ThinkFlow меняет правила игры, используя ИИ для отображения сложных концепций непосредственно на ваши нейронные пути.'
-                  : language === 'uz'
-                  ? 'An’anaviy ta’lim tizimi buzilgan. U mantiqdan ko‘ra xotirani ko‘proq qadrlaydi. ThinkFlow qoidalarni o‘zgartiradi va murakkab tushunchalarni to‘g‘ridan-to‘g‘ri neyron yo‘llaringizga bog‘lash uchun sun’iy intellektdan foydalanadi.'
-                  : 'Traditional education is broken. It rewards memory over logic. ThinkFlow flips the script, using AI to map complex concepts directly to your existing neural pathways.'}
+                {t.educationBroken}
               </p>
               <div className="flex items-center gap-8">
                 <div className="text-center">
