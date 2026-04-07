@@ -128,42 +128,9 @@ export const GeniusLab: React.FC = () => {
                     <ol className="list-decimal list-inside text-left space-y-1 mx-auto max-w-xs bg-black/20 p-4 rounded-xl border border-white/5">
                       <li>Нажмите на <b>⚙️ Settings</b> (слева внизу).</li>
                       <li>Выберите вкладку <b>Secrets</b>.</li>
-                      <li>Добавьте <b>GEMINI_API_KEY</b> и ваш новый ключ.</li>
+                      <li>Добавьте <b>API_KEY</b> и ваш ключ.</li>
                       <li>Нажмите <b>Save</b> и <b>обновите страницу (F5)</b>.</li>
                     </ol>
-                  </div>
-
-                  <div className="pt-4 border-t border-white/5 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Диагностика (что видит приложение):</p>
-                    <div className="grid grid-cols-2 gap-2 text-[9px] font-mono bg-black/40 p-3 rounded-lg border border-white/5">
-                      <div className="text-left text-gray-500">AI_KEY:</div>
-                      <div className="text-right">{(import.meta.env.VITE_AI_KEY || process.env.VITE_AI_KEY) ? `✅ ${(import.meta.env.VITE_AI_KEY || process.env.VITE_AI_KEY).substring(0, 6)}...` : '❌ Пусто'}</div>
-                      <div className="text-left text-gray-500">GEMINI_API_KEY:</div>
-                      <div className="text-right">{(import.meta.env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY) ? `✅ ${(import.meta.env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY).substring(0, 6)}...` : '❌ Пусто'}</div>
-                      <div className="text-left text-gray-500">API_KEY:</div>
-                      <div className="text-right">{(import.meta.env.VITE_API_KEY || process.env.VITE_API_KEY) ? `✅ ${(import.meta.env.VITE_API_KEY || process.env.VITE_API_KEY).substring(0, 6)}...` : '❌ Пусто'}</div>
-                    </div>
-                    <p className="text-[8px] text-gray-600 italic">Если везде "Пусто", значит ключ не сохранен или страница не обновлена.</p>
-                  </div>
-
-                  <div className="pt-4 border-t border-white/5 space-y-3 w-full">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white">Запасной вариант (ввести вручную):</p>
-                    <div className="flex gap-2">
-                      <input 
-                        type="password"
-                        value={manualKey}
-                        onChange={e => setManualKey(e.target.value)}
-                        placeholder="Вставьте ваш ключ здесь..."
-                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-indigo-500/50"
-                      />
-                      <Button 
-                        onClick={handleSaveManualKey}
-                        className="py-2 px-4 text-[10px] rounded-xl"
-                      >
-                        Применить
-                      </Button>
-                    </div>
-                    <p className="text-[8px] text-gray-500">Ключ сохранится только в вашем браузере.</p>
                   </div>
                 </div>
               )}

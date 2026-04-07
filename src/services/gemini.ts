@@ -61,6 +61,27 @@ const PERSONA_PROMPTS = {
   `
 };
 
+async function callServerAI(model: string, contents: any[], config: any, systemInstruction?: string) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, contents, config, systemInstruction })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Server error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.text;
+  } catch (error: any) {
+    console.error("AI Proxy Error:", error);
+    throw error;
+  }
+}
+
 export async function askThinkFlowAI(
   type: AIModelType,
   prompt: string,
@@ -68,11 +89,6 @@ export async function askThinkFlowAI(
   history: Message[] = [],
   attachment?: { data: string; mimeType: string }
 ) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "") {
-    return "AI is currently unavailable. Please ensure the GEMINI_API_KEY is set in the platform settings.";
-  }
-
   const systemInstruction = PERSONA_PROMPTS[type](profile);
   
   const contents: any[] = history.map(m => {
@@ -91,22 +107,11 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const response: GenerateContentResponse = await getAI().models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: contents,
-      config: { systemInstruction, temperature: 0.7 }
-    });
-
-    return response.text || "I'm sorry, I couldn't generate a response.";
+    return await callServerAI('gemini-3-flash-preview', contents, { temperature: 0.7 }, systemInstruction);
   } catch (error) {
     console.error("Gemini 3 Flash Error, trying 1.5 Flash:", error);
     try {
-      const response: GenerateContentResponse = await getAI().models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: contents,
-        config: { systemInstruction, temperature: 0.7 }
-      });
-      return response.text || "I'm sorry, I couldn't generate a response.";
+      return await callServerAI('gemini-1.5-flash', contents, { temperature: 0.7 }, systemInstruction);
     } catch (innerError) {
       console.error("Gemini 1.5 Flash Error:", innerError);
       return "An error occurred while connecting to the AI. This might be due to an invalid API key or network issues.";
@@ -118,11 +123,6 @@ export async function askThinkFlowAI(
  * Generates a structured Knowledge Tree for the Genius Lab.
  */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please add GEMINI_API_KEY or simply AI_KEY in the Settings -> Secrets menu.");
-  }
-
   const prompt = `
     Create a structured Knowledge Tree for the topic: "${topic}".
     The user is ${profile.age} years old and interested in: ${profile.interests.join(', ')}.
@@ -154,16 +154,11 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   for (const modelName of modelsToTry) {
     try {
       console.log(`Attempting Knowledge Tree generation with ${modelName}...`);
-      const response = await getAI().models.generateContent({
-        model: modelName,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { 
-          temperature: 0.8,
-          responseMimeType: "application/json"
-        }
+      const text = await callServerAI(modelName, [{ role: 'user', parts: [{ text: prompt }] }], { 
+        temperature: 0.8,
+        responseMimeType: "application/json"
       });
 
-      const text = response.text;
       if (!text) throw new Error(`Empty response from ${modelName}`);
       
       // Robust JSON parsing: strip markdown code blocks if present
@@ -194,28 +189,17 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
   `;
 
   try {
-    const response = await getAI().models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { 
-        temperature: 0.8,
-        systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
-      }
+    return await callServerAI('gemini-3-flash-preview', [{ role: 'user', parts: [{ text: prompt }] }], { 
+      temperature: 0.8,
+      systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
     });
-
-    return response.text || "I couldn't generate an explanation for this topic.";
   } catch (error) {
     console.error("Gemini 3 Flash Error, trying 3.1 Flash Lite:", error);
     try {
-      const response = await getAI().models.generateContent({
-        model: 'gemini-3.1-flash-lite-preview',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { 
-          temperature: 0.8,
-          systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
-        }
+      return await callServerAI('gemini-3.1-flash-lite-preview', [{ role: 'user', parts: [{ text: prompt }] }], { 
+        temperature: 0.8,
+        systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
       });
-      return response.text || "I couldn't generate an explanation for this topic.";
     } catch (innerError) {
       console.error("Gemini 3.1 Flash Lite Error:", innerError);
       throw new Error("Failed to connect to Gemini AI. Please check your API key.");
