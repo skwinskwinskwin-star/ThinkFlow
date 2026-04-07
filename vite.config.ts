@@ -4,7 +4,17 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
+    const env = loadEnv(mode, process.cwd(), '');
+    
+    // Debug: Log found keys (masked)
+    console.log('Vite Config: Checking for API keys...');
+    ['GEMINI_API_KEY', 'AI_KEY', 'API_KEY', 'VITE_AI_KEY'].forEach(key => {
+      const val = process.env[key] || env[key];
+      if (val) {
+        console.log(`- Found ${key}: ${val.substring(0, 6)}...`);
+      }
+    });
+
     return {
       server: {
         port: 3000,
