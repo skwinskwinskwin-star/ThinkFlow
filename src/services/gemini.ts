@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 const getAI = () => {
-  const apiKey = process.env.GEMINI_API_KEY || "";
+  const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
   if (!apiKey) {
     console.warn("GEMINI_API_KEY is missing in the environment!");
   } else {
