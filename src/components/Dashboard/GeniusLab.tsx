@@ -105,7 +105,28 @@ export const GeniusLab: React.FC = () => {
               </Card>
 
           {error && (
-            <p className="text-red-400 text-sm font-bold animate-bounce">{error}</p>
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8 p-6 rounded-3xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex flex-col items-center gap-4 max-w-xl mx-auto"
+            >
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                {error}
+              </div>
+              {error.includes("API Key") && (
+                <div className="text-xs text-gray-400 font-medium space-y-2 text-center">
+                  <p>Чтобы исправить это:</p>
+                  <ol className="list-decimal list-inside text-left space-y-1 mx-auto max-w-xs">
+                    <li>Нажмите на иконку шестеренки ⚙️ (Settings) в левом нижнем углу экрана.</li>
+                    <li>В открывшемся окне выберите вкладку <b>Secrets</b>.</li>
+                    <li>Добавьте переменную с именем <b>AI_KEY</b> (или <b>GEMINI_API_KEY</b>).</li>
+                    <li>Вставьте ваш ключ в поле значения.</li>
+                    <li>Нажмите <b>Save</b> и обновите страницу.</li>
+                  </ol>
+                </div>
+              )}
+            </motion.div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">

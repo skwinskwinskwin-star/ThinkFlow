@@ -2,12 +2,25 @@
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
+const getApiKey = () => {
+  // Try multiple sources for the API key, including more "friendly" names
+  const key = process.env.GEMINI_API_KEY || 
+              (import.meta as any).env?.GEMINI_API_KEY || 
+              (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+              process.env.AI_KEY || 
+              process.env.MY_KEY || 
+              process.env.THINKFLOW_KEY ||
+              process.env.API_KEY || 
+              "";
+  return key.trim();
+};
+
 const getAI = () => {
-  const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+  const apiKey = getApiKey();
   if (!apiKey) {
     console.warn("GEMINI_API_KEY is missing in the environment!");
   } else {
-    console.log("GEMINI_API_KEY is present (starts with:", apiKey.substring(0, 8), "...)");
+    console.log("GEMINI_API_KEY detected (starts with:", apiKey.substring(0, 6), "...)");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -104,9 +117,9 @@ export async function askThinkFlowAI(
  * Generates a structured Knowledge Tree for the Genius Lab.
  */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
-  const apiKey = process.env.GEMINI_API_KEY || "";
+  const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error("Gemini API Key is missing. Please configure it in the environment.");
+    throw new Error("API Key is missing. Please add GEMINI_API_KEY or simply AI_KEY in the Settings -> Secrets menu.");
   }
 
   const prompt = `
