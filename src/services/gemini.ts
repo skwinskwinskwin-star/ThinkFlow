@@ -4,6 +4,11 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 const getAI = () => {
   const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) {
+    console.warn("GEMINI_API_KEY is missing in the environment!");
+  } else {
+    console.log("GEMINI_API_KEY is present (starts with:", apiKey.substring(0, 8), "...)");
+  }
   return new GoogleGenAI({ apiKey });
 };
 
@@ -80,8 +85,18 @@ export async function askThinkFlowAI(
 
     return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error) {
-    console.error("Gemini Error:", error);
-    return "An error occurred while connecting to the AI. This might be due to an invalid API key or network issues.";
+    console.error("Gemini 3 Flash Error, trying 1.5 Flash:", error);
+    try {
+      const response: GenerateContentResponse = await getAI().models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: contents,
+        config: { systemInstruction, temperature: 0.7 }
+      });
+      return response.text || "I'm sorry, I couldn't generate a response.";
+    } catch (innerError) {
+      console.error("Gemini 1.5 Flash Error:", innerError);
+      return "An error occurred while connecting to the AI. This might be due to an invalid API key or network issues.";
+    }
   }
 }
 
@@ -178,8 +193,23 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
       if (!text) throw new Error("Empty response from AI");
       return JSON.parse(text) as KnowledgeTree;
     } catch (flashError) {
-      console.error("Knowledge Tree Flash Error:", flashError);
-      throw new Error("Failed to generate Knowledge Tree. Please check your AI connection.");
+      console.error("Knowledge Tree Flash Error, trying 1.5 Flash:", flashError);
+      try {
+        const response = await getAI().models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: { 
+            temperature: 0.8,
+            responseMimeType: "application/json"
+          }
+        });
+        const text = response.text;
+        if (!text) throw new Error("Empty response from AI");
+        return JSON.parse(text) as KnowledgeTree;
+      } catch (finalError) {
+        console.error("Knowledge Tree Final Error:", finalError);
+        throw new Error("Failed to generate Knowledge Tree. Please check your AI connection.");
+      }
     }
   }
 }
@@ -208,7 +238,20 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
 
     return response.text || "I couldn't generate an explanation for this topic.";
   } catch (error) {
-    console.error("Gemini MVP Error:", error);
-    throw new Error("Failed to connect to Gemini AI.");
+    console.error("Gemini 3 Flash Error, trying 1.5 Flash:", error);
+    try {
+      const response = await getAI().models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: { 
+          temperature: 0.8,
+          systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
+        }
+      });
+      return response.text || "I couldn't generate an explanation for this topic.";
+    } catch (innerError) {
+      console.error("Gemini 1.5 Flash Error:", innerError);
+      throw new Error("Failed to connect to Gemini AI.");
+    }
   }
 }
