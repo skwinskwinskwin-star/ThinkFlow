@@ -19,18 +19,23 @@ export const GeniusLab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [manualKey, setManualKey] = useState('');
+  const [healthStatus, setHealthStatus] = useState<any>(null);
 
-  const handleSaveManualKey = () => {
-    if (!manualKey.trim()) return;
-    localStorage.setItem('THINKFLOW_MANUAL_KEY', manualKey.trim());
-    window.location.reload();
+  const checkServerHealth = async () => {
+    try {
+      const response = await fetch("/api/health");
+      const data = await response.json();
+      setHealthStatus(data);
+    } catch (err) {
+      setHealthStatus({ error: "Could not reach server" });
+    }
   };
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
     setIsLoading(true);
     setError(null);
+    setHealthStatus(null);
     try {
       const generatedTree = await generateKnowledgeTree(topic, profile);
       setTree(generatedTree);
@@ -103,10 +108,22 @@ export const GeniusLab: React.FC = () => {
                   />
                   <Button 
                     onClick={handleInitialize}
-                    disabled={!topic.trim()}
-                    className="h-auto py-6 px-10 rounded-[2rem] text-lg gap-3"
+                    disabled={isLoading || !topic.trim()}
+                    className="h-auto py-6 px-10 rounded-[2rem] text-lg gap-3 relative overflow-hidden group"
                   >
-                    {t.initialize} <Sparkles className="w-5 h-5" />
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+                    />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        {t.constructingKnowledge}
+                      </>
+                    ) : (
+                      <>
+                        {t.initialize} <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      </>
+                    )}
                   </Button>
                 </div>
               </Card>
@@ -121,19 +138,35 @@ export const GeniusLab: React.FC = () => {
                 <Zap className="w-4 h-4 shrink-0" />
                 {error}
               </div>
-              {(error.toLowerCase().includes("api key") || error.toLowerCase().includes("permission")) && (
-                <div className="text-xs text-gray-400 font-medium space-y-4 text-center w-full">
-                  <div className="space-y-2">
-                    <p className="text-white font-black uppercase tracking-widest text-[10px]">Инструкция по исправлению:</p>
-                    <ol className="list-decimal list-inside text-left space-y-1 mx-auto max-w-xs bg-black/20 p-4 rounded-xl border border-white/5">
-                      <li>Нажмите на <b>⚙️ Settings</b> (слева внизу).</li>
-                      <li>Выберите вкладку <b>Secrets</b>.</li>
-                      <li>Добавьте <b>API_KEY</b> и ваш ключ.</li>
-                      <li>Нажмите <b>Save</b> и <b>обновите страницу (F5)</b>.</li>
-                    </ol>
+              
+              <div className="flex flex-col gap-4 w-full">
+                <Button 
+                  onClick={checkServerHealth}
+                  className="bg-white/10 hover:bg-white/20 border border-white/10 text-white text-[10px] py-2 rounded-xl"
+                >
+                  Проверить соединение с сервером
+                </Button>
+
+                {healthStatus && (
+                  <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left overflow-auto max-h-40">
+                    <pre>{JSON.stringify(healthStatus, null, 2)}</pre>
                   </div>
-                </div>
-              )}
+                )}
+
+                {(error.toLowerCase().includes("api key") || error.toLowerCase().includes("permission") || error.toLowerCase().includes("html error page")) && (
+                  <div className="text-xs text-gray-400 font-medium space-y-4 text-center w-full">
+                    <div className="space-y-2">
+                      <p className="text-white font-black uppercase tracking-widest text-[10px]">Инструкция по исправлению:</p>
+                      <ol className="list-decimal list-inside text-left space-y-1 mx-auto max-w-xs bg-black/20 p-4 rounded-xl border border-white/5">
+                        <li>Нажмите на <b>⚙️ Settings</b> (слева внизу).</li>
+                        <li>Выберите вкладку <b>Secrets</b>.</li>
+                        <li>Добавьте <b>API_KEY</b> и ваш ключ.</li>
+                        <li>Нажмите <b>Save</b> и <b>обновите страницу (F5)</b>.</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 

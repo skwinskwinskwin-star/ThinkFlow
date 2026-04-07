@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Camera, Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { INTERESTS, CLASSES } from '../../constants';
@@ -15,6 +16,15 @@ export const ProfileEditor: React.FC = () => {
   const { t } = useLanguage();
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(profile?.interests || []);
+
+  const toggleInterest = (interest: string) => {
+    setSelectedInterests(prev => 
+      prev.includes(interest) 
+        ? prev.filter(i => i !== interest) 
+        : [...prev, interest]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -22,13 +32,12 @@ export const ProfileEditor: React.FC = () => {
     setIsSaving(true);
 
     const fd = new FormData(e.currentTarget);
-    const interests = INTERESTS.filter(i => fd.get(`interest-${i}`));
-
+    
     const updatedProfile: Partial<UserProfile> = {
       name: fd.get('name') as string,
       bio: fd.get('bio') as string,
       studentClass: fd.get('class') as StudentClass,
-      interests,
+      interests: selectedInterests,
       age: parseInt(fd.get('age') as string) || profile.age
     };
 
@@ -46,9 +55,29 @@ export const ProfileEditor: React.FC = () => {
 
   if (!profile) return null;
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700">
-      <div className="flex items-center justify-between">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-4xl mx-auto space-y-12 pb-20"
+    >
+      <motion.div variants={itemVariants} className="flex items-center justify-between">
         <div>
           <h2 className="text-5xl font-black uppercase tracking-tighter text-[var(--text)]">
             {t.profile}
@@ -57,97 +86,134 @@ export const ProfileEditor: React.FC = () => {
             Customize your digital identity in the ThinkFlow ecosystem.
           </p>
         </div>
-        <div className="relative group">
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          className="relative group"
+        >
           <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl overflow-hidden">
             {profile.photoURL ? <img src={profile.photoURL} alt={profile.name} className="w-full h-full object-cover" /> : profile.name[0]}
           </div>
           <button className="absolute -bottom-2 -right-2 bg-[var(--card)] p-3 rounded-xl shadow-xl border border-[var(--border)] group-hover:scale-110 transition-transform">
             <Camera className="w-4 h-4 text-indigo-500" />
           </button>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <Card className="p-10 md:p-14 rounded-[4rem] border border-[var(--border)] shadow-2xl">
+        <Card className="p-10 md:p-14 rounded-[4rem] border border-[var(--border)] shadow-2xl overflow-hidden relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">{t.name}</label>
-                <input 
+            <motion.div variants={itemVariants} className="space-y-6">
+              <div className="group space-y-2">
+                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest group-focus-within:text-indigo-500 transition-colors">{t.name}</label>
+                <motion.input 
+                  whileFocus={{ scale: 1.01 }}
                   name="name" 
                   defaultValue={profile.name} 
                   required
                   className={`w-full bg-[var(--input)] border border-[var(--border)] rounded-2xl p-5 text-[var(--text)] outline-none focus:border-indigo-500 transition-all`} 
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">Age</label>
-                <input 
+              <div className="group space-y-2">
+                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest group-focus-within:text-indigo-500 transition-colors">Age</label>
+                <motion.input 
+                  whileFocus={{ scale: 1.01 }}
                   name="age" 
                   type="number"
                   defaultValue={profile.age} 
                   className={`w-full bg-[var(--input)] border border-[var(--border)] rounded-2xl p-5 text-[var(--text)] outline-none focus:border-indigo-500 transition-all`} 
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">Class</label>
-                <select 
+              <div className="group space-y-2">
+                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest group-focus-within:text-indigo-500 transition-colors">Class</label>
+                <motion.select 
+                  whileFocus={{ scale: 1.01 }}
                   name="class" 
                   defaultValue={profile.studentClass} 
-                  className={`w-full bg-[var(--input)] border border-[var(--border)] rounded-2xl p-5 text-[var(--text)] outline-none focus:border-indigo-500 transition-all`}
+                  className={`w-full bg-[var(--input)] border border-[var(--border)] rounded-2xl p-5 text-[var(--text)] outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer`}
                 >
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                </motion.select>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">{t.bio}</label>
-                <textarea 
+            <motion.div variants={itemVariants} className="space-y-6">
+              <div className="group space-y-2">
+                <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest group-focus-within:text-indigo-500 transition-colors">{t.bio}</label>
+                <motion.textarea 
+                  whileFocus={{ scale: 1.01 }}
                   name="bio" 
                   defaultValue={profile.bio} 
                   className={`w-full bg-[var(--input)] border border-[var(--border)] rounded-2xl p-5 text-[var(--text)] outline-none focus:border-indigo-500 transition-all h-[212px] resize-none`} 
                 />
               </div>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="mt-10 space-y-4">
+          <motion.div variants={itemVariants} className="mt-10 space-y-4">
             <label className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">My Interests</label>
             <div className={`p-8 bg-[var(--input)] rounded-[2.5rem] border border-[var(--border)] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4`}>
-              {INTERESTS.map(i => (
-                <label key={i} className="flex items-center gap-3 text-[10px] font-black uppercase text-[var(--muted)] hover:text-indigo-500 cursor-pointer transition-colors group">
-                  <input 
-                    type="checkbox" 
-                    name={`interest-${i}`} 
-                    defaultChecked={profile.interests.includes(i)}
-                    className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500"
-                  /> 
-                  <span className="group-hover:translate-x-1 transition-transform">{i}</span>
-                </label>
-              ))}
+              {INTERESTS.map((i, idx) => {
+                const isSelected = selectedInterests.includes(i);
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => toggleInterest(i)}
+                    className={`
+                      relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300
+                      ${isSelected 
+                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+                        : 'bg-black/20 border-white/5 text-[var(--muted)] hover:border-white/10'
+                      }
+                    `}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-widest text-center">{i}</span>
+                    {isSelected && (
+                      <motion.div 
+                        layoutId="check"
+                        className="absolute -top-1 -right-1 bg-white rounded-full p-0.5"
+                      >
+                        <CheckCircle2 className="w-3 h-3 text-indigo-600" />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
-          </div>
+          </motion.div>
         </Card>
 
-        <div className="flex items-center gap-6">
+        <motion.div variants={itemVariants} className="flex items-center gap-6">
           <Button 
             type="submit" 
             disabled={isSaving}
-            className="flex-1 h-20 rounded-[2rem] gap-3 text-lg"
+            className="flex-1 h-20 rounded-[2rem] gap-3 text-lg relative overflow-hidden group"
           >
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+            />
             {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
             {t.update}
           </Button>
-          {showSuccess && (
-            <div className="flex items-center gap-2 text-emerald-500 font-black uppercase tracking-widest text-xs animate-in slide-in-from-left-4">
-              <CheckCircle2 className="w-6 h-6" />
-              Saved!
-            </div>
-          )}
-        </div>
+          <AnimatePresence>
+            {showSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="flex items-center gap-2 text-emerald-500 font-black uppercase tracking-widest text-xs"
+              >
+                <CheckCircle2 className="w-6 h-6" />
+                Saved!
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div >
       </form>
-    </div>
+    </motion.div>
   );
 };

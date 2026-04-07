@@ -69,13 +69,37 @@ async function callServerAI(model: string, contents: any[], config: any, systemI
       body: JSON.stringify({ model, contents, config, systemInstruction })
     });
 
+    const contentType = response.headers.get("content-type");
+    const text = await response.text();
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Server error: ${response.status}`);
+      let errorMessage = `Server error: ${response.status}`;
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          console.error("Failed to parse error JSON:", text);
+        }
+      } else {
+        console.error("Non-JSON error response:", text);
+        errorMessage = `AI Server returned an HTML error page. This usually means the server route was not found or the server crashed.`;
+      }
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    return data.text;
+    if (contentType && contentType.includes("application/json")) {
+      try {
+        const data = JSON.parse(text);
+        return data.text;
+      } catch (e) {
+        console.error("Failed to parse JSON response:", text);
+        throw new Error("AI Server returned an invalid JSON response.");
+      }
+    } else {
+      console.error("Expected JSON but got:", contentType, text);
+      throw new Error("AI Server returned an unexpected response format (HTML instead of JSON).");
+    }
   } catch (error: any) {
     console.error("AI Proxy Error:", error);
     throw error;
