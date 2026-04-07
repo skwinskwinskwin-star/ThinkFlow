@@ -104,14 +104,14 @@ export async function askThinkFlowAI(
  * Generates a structured Knowledge Tree for the Genius Lab.
  */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("API Key missing");
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) {
+    throw new Error("Gemini API Key is missing. Please configure it in the environment.");
   }
 
   const prompt = `
     Create a structured Knowledge Tree for the topic: "${topic}".
-    The tree should have 5-7 nodes that represent a learning path.
-    Use the user's interests (${profile.interests.join(', ')}) to create metaphors for each node.
+    The user is ${profile.age} years old and interested in: ${profile.interests.join(', ')}.
     
     Return a JSON object with this structure:
     {
@@ -130,88 +130,41 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
         { "from": "id1", "to": "id2" }
       ]
     }
+    
+    IMPORTANT: Return ONLY the JSON object. No markdown formatting.
   `;
 
-  try {
-    const response = await getAI().models.generateContent({
-      model: 'gemini-3.1-pro-preview',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { 
-        temperature: 0.8,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            topic: { type: Type.STRING },
-            nodes: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  label: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  metaphor: { type: Type.STRING },
-                  challenge: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ["core", "branch", "leaf"] }
-                },
-                required: ["id", "label", "description", "metaphor", "challenge", "type"]
-              }
-            },
-            connections: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  from: { type: Type.STRING },
-                  to: { type: Type.STRING }
-                },
-                required: ["from", "to"]
-              }
-            }
-          },
-          required: ["topic", "nodes", "connections"]
-        }
-      }
-    });
+  const modelsToTry = ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview'];
+  let lastError: any = null;
 
-    const text = response.text;
-    if (!text) throw new Error("Empty response from AI");
-    return JSON.parse(text) as KnowledgeTree;
-  } catch (error) {
-    console.error("Knowledge Tree Pro Error, trying Flash:", error);
+  for (const modelName of modelsToTry) {
     try {
+      console.log(`Attempting Knowledge Tree generation with ${modelName}...`);
       const response = await getAI().models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: modelName,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { 
           temperature: 0.8,
           responseMimeType: "application/json"
         }
       });
+
       const text = response.text;
-      if (!text) throw new Error("Empty response from AI");
-      return JSON.parse(text) as KnowledgeTree;
-    } catch (flashError) {
-      console.error("Knowledge Tree Flash Error, trying 1.5 Flash:", flashError);
-      try {
-        const response = await getAI().models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          config: { 
-            temperature: 0.8,
-            responseMimeType: "application/json"
-          }
-        });
-        const text = response.text;
-        if (!text) throw new Error("Empty response from AI");
-        return JSON.parse(text) as KnowledgeTree;
-      } catch (finalError) {
-        console.error("Knowledge Tree Final Error:", finalError);
-        throw new Error("Failed to generate Knowledge Tree. Please check your AI connection.");
-      }
+      if (!text) throw new Error(`Empty response from ${modelName}`);
+      
+      // Robust JSON parsing: strip markdown code blocks if present
+      const cleanJson = text.replace(/```json\n?|```/g, '').trim();
+      return JSON.parse(cleanJson) as KnowledgeTree;
+    } catch (error) {
+      console.error(`Error with ${modelName}:`, error);
+      lastError = error;
+      // Continue to next model
     }
   }
+
+  console.error("All models failed for Knowledge Tree generation.");
+  const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(`AI Connection Error: ${errorMessage}. Please check your API key and network.`);
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
@@ -238,10 +191,10 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
 
     return response.text || "I couldn't generate an explanation for this topic.";
   } catch (error) {
-    console.error("Gemini 3 Flash Error, trying 1.5 Flash:", error);
+    console.error("Gemini 3 Flash Error, trying 3.1 Flash Lite:", error);
     try {
       const response = await getAI().models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.1-flash-lite-preview',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { 
           temperature: 0.8,
@@ -250,8 +203,8 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
       });
       return response.text || "I couldn't generate an explanation for this topic.";
     } catch (innerError) {
-      console.error("Gemini 1.5 Flash Error:", innerError);
-      throw new Error("Failed to connect to Gemini AI.");
+      console.error("Gemini 3.1 Flash Lite Error:", innerError);
+      throw new Error("Failed to connect to Gemini AI. Please check your API key.");
     }
   }
 }
