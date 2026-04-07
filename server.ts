@@ -12,9 +12,12 @@ async function startServer() {
   const PORT = 3000;
 
   console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode...`);
-  console.log(`API_KEY present: ${!!process.env.API_KEY}`);
-  console.log(`AI_KEY present: ${!!process.env.AI_KEY}`);
-  console.log(`GEMINI_API_KEY present: ${!!process.env.GEMINI_API_KEY}`);
+  const apiKey = process.env.API_KEY || process.env.AI_KEY || process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    console.log(`API Key found! Starts with: ${apiKey.substring(0, 4)}... (length: ${apiKey.length})`);
+  } else {
+    console.warn("No API Key found in environment variables!");
+  }
 
   // Request Logger
   app.use((req, res, next) => {
@@ -23,6 +26,12 @@ async function startServer() {
   });
 
   app.use(express.json({ limit: '10mb' }));
+
+  // API Request Logger (more detailed)
+  app.use("/api", (req, res, next) => {
+    console.log(`[API] ${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+  });
 
   // Health check
   app.get("/api/health", (req, res) => {
@@ -75,7 +84,16 @@ async function startServer() {
   // Catch-all for API routes that don't exist
   app.all("/api/*", (req, res) => {
     console.warn(`404 - API route not found: ${req.method} ${req.url}`);
-    res.status(404).json({ error: "API route not found" });
+    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
+  });
+
+  // Global Error Handler for API
+  app.use("/api", (err: any, req: any, res: any, next: any) => {
+    console.error("[API ERROR]", err);
+    res.status(err.status || 500).json({ 
+      error: err.message || "Internal Server Error",
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   });
 
   // Vite middleware for development
