@@ -3,7 +3,11 @@ import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 const getApiKey = () => {
-  return (import.meta.env.VITE_AI_KEY || 
+  // Check localStorage first (manual fallback)
+  const manualKey = typeof window !== 'undefined' ? localStorage.getItem('THINKFLOW_MANUAL_KEY') : null;
+  
+  return (manualKey ||
+          import.meta.env.VITE_AI_KEY || 
           import.meta.env.VITE_GEMINI_API_KEY || 
           import.meta.env.VITE_API_KEY || 
           "").trim();

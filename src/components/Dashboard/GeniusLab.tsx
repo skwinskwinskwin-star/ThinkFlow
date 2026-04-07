@@ -19,6 +19,13 @@ export const GeniusLab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualKey, setManualKey] = useState('');
+
+  const handleSaveManualKey = () => {
+    if (!manualKey.trim()) return;
+    localStorage.setItem('THINKFLOW_MANUAL_KEY', manualKey.trim());
+    window.location.reload();
+  };
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
@@ -137,6 +144,26 @@ export const GeniusLab: React.FC = () => {
                       <div className="text-right">{import.meta.env.VITE_API_KEY ? `✅ ${import.meta.env.VITE_API_KEY.substring(0, 6)}...` : '❌ Пусто'}</div>
                     </div>
                     <p className="text-[8px] text-gray-600 italic">Если везде "Пусто", значит ключ не сохранен или страница не обновлена.</p>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/5 space-y-3 w-full">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white">Запасной вариант (ввести вручную):</p>
+                    <div className="flex gap-2">
+                      <input 
+                        type="password"
+                        value={manualKey}
+                        onChange={e => setManualKey(e.target.value)}
+                        placeholder="Вставьте ваш ключ здесь..."
+                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-indigo-500/50"
+                      />
+                      <Button 
+                        onClick={handleSaveManualKey}
+                        className="py-2 px-4 text-[10px] rounded-xl"
+                      >
+                        Применить
+                      </Button>
+                    </div>
+                    <p className="text-[8px] text-gray-500">Ключ сохранится только в вашем браузере.</p>
                   </div>
                 </div>
               )}
