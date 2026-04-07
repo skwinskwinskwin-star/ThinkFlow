@@ -3,16 +3,10 @@ import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 const getApiKey = () => {
-  // Try multiple sources for the API key, including more "friendly" names
-  const key = process.env.GEMINI_API_KEY || 
-              (import.meta as any).env?.GEMINI_API_KEY || 
-              (import.meta as any).env?.VITE_GEMINI_API_KEY || 
-              process.env.AI_KEY || 
-              process.env.MY_KEY || 
-              process.env.THINKFLOW_KEY ||
-              process.env.API_KEY || 
-              "";
-  return key.trim();
+  return (import.meta.env.VITE_AI_KEY || 
+          import.meta.env.VITE_GEMINI_API_KEY || 
+          import.meta.env.VITE_API_KEY || 
+          "").trim();
 };
 
 const getAI = () => {

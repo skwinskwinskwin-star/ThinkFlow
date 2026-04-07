@@ -130,11 +130,11 @@ export const GeniusLab: React.FC = () => {
                     <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Диагностика (что видит приложение):</p>
                     <div className="grid grid-cols-2 gap-2 text-[9px] font-mono bg-black/40 p-3 rounded-lg border border-white/5">
                       <div className="text-left text-gray-500">AI_KEY:</div>
-                      <div className="text-right">{(process.env.AI_KEY || (import.meta as any).env?.VITE_AI_KEY) ? `✅ ${((process.env.AI_KEY || (import.meta as any).env?.VITE_AI_KEY) as string).substring(0, 6)}...` : '❌ Пусто'}</div>
+                      <div className="text-right">{import.meta.env.VITE_AI_KEY ? `✅ ${import.meta.env.VITE_AI_KEY.substring(0, 6)}...` : '❌ Пусто'}</div>
                       <div className="text-left text-gray-500">GEMINI_API_KEY:</div>
-                      <div className="text-right">{(process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY) ? `✅ ${((process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY) as string).substring(0, 6)}...` : '❌ Пусто'}</div>
+                      <div className="text-right">{import.meta.env.VITE_GEMINI_API_KEY ? `✅ ${import.meta.env.VITE_GEMINI_API_KEY.substring(0, 6)}...` : '❌ Пусто'}</div>
                       <div className="text-left text-gray-500">API_KEY:</div>
-                      <div className="text-right">{process.env.API_KEY ? `✅ ${(process.env.API_KEY as string).substring(0, 6)}...` : '❌ Пусто'}</div>
+                      <div className="text-right">{import.meta.env.VITE_API_KEY ? `✅ ${import.meta.env.VITE_API_KEY.substring(0, 6)}...` : '❌ Пусто'}</div>
                     </div>
                     <p className="text-[8px] text-gray-600 italic">Если везде "Пусто", значит ключ не сохранен или страница не обновлена.</p>
                   </div>
