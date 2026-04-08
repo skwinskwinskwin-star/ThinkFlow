@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Sparkles, Target, Zap, ArrowRight, Loader2, CheckCircle2, ChevronRight, MessageSquare, Star } from 'lucide-react';
-import { generateKnowledgeTree } from '../../services/gemini';
+import { Brain, Sparkles, Target, Zap, ArrowRight, Loader2, CheckCircle2, ChevronRight, MessageSquare, Star, AlertCircle } from 'lucide-react';
+import { generateKnowledgeTree, checkAIStatus } from '../../services/gemini';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { KnowledgeTree, KnowledgeNode } from '../../types';
@@ -21,15 +21,9 @@ export const GeniusLab: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<any>(null);
 
-  const checkServerHealth = async () => {
-    try {
-      const response = await fetch("/api/health");
-      const data = await response.json();
-      setHealthStatus(data);
-    } catch (err) {
-      setHealthStatus({ error: "Could not reach server" });
-    }
-  };
+  useEffect(() => {
+    checkAIStatus().then(setHealthStatus);
+  }, []);
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
@@ -95,6 +89,20 @@ export const GeniusLab: React.FC = () => {
               {t.geniusLabSub}
             </p>
           </div>
+
+          {healthStatus && !healthStatus.hasKey && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-2xl mx-auto p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-4 text-amber-200 text-sm font-bold"
+            >
+              <AlertCircle className="w-6 h-6 shrink-0" />
+              <div className="text-left">
+                <p className="uppercase tracking-tighter">Ключ API не обнаружен</p>
+                <p className="opacity-70 font-medium">Пожалуйста, добавьте <b>GEMINI_API_KEY</b> в меню Settings → Secrets для работы ИИ.</p>
+              </div>
+            </motion.div>
+          )}
 
               <Card className="p-2 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl max-w-2xl mx-auto">
                 <div className="flex flex-col md:flex-row gap-2">

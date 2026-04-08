@@ -10,13 +10,21 @@ async function callAIProxy(payload: any) {
       body: JSON.stringify(payload)
     });
     
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType && contentType.includes('application/json');
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown Server Error' }));
-      throw new Error(errorData.error || `Server returned ${response.status}`);
+      if (isJson) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Ошибка сервера (${response.status})`);
+      } else {
+        const text = await response.text();
+        console.error('[AI PROXY] Non-JSON error response:', text.substring(0, 200));
+        throw new Error(`Ошибка сервера (${response.status}). Сервер вернул некорректный формат данных.`);
+      }
     }
 
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
+    if (!isJson) {
       throw new Error("Сервер вернул некорректный формат данных (не JSON).");
     }
 
@@ -24,6 +32,15 @@ async function callAIProxy(payload: any) {
   } catch (err: any) {
     console.error('[AI PROXY ERROR]', err);
     throw err;
+  }
+}
+
+export async function checkAIStatus() {
+  try {
+    const res = await fetch('/api/health');
+    return await res.json();
+  } catch (e) {
+    return { status: 'offline', hasKey: false };
   }
 }
 
