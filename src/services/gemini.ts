@@ -1,11 +1,32 @@
-import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Initialize the Gemini AI client
-// The API key is injected via Vite's define in vite.config.ts
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || ''
-});
+async function callServerAI(model: string, contents: any[], config: any) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, contents, config })
+    });
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Non-JSON response:", text);
+      throw new Error("AI Server returned HTML instead of JSON. This is a routing error.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `Server error: ${response.status}`);
+    }
+
+    return data.text;
+  } catch (error: any) {
+    console.error("AI Proxy Error:", error);
+    throw error;
+  }
+}
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
@@ -75,24 +96,16 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents,
-      config: {
-        systemInstruction,
-        temperature: 0.7
-      }
+    return await callServerAI('gemini-3-flash-preview', contents, { 
+      systemInstruction,
+      temperature: 0.7 
     });
-    return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error: any) {
     console.error("AI Error:", error);
-    return `Error: ${error.message || "Failed to connect to AI"}. Please check your API key.`;
+    return `Error: ${error.message || "Failed to connect to AI"}. Please check your connection.`;
   }
 }
 
-/**
- * Generates a structured Knowledge Tree for the Genius Lab.
- */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
   const prompt = `
     Create a structured Knowledge Tree for the topic: "${topic}".
@@ -120,24 +133,17 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        temperature: 0.8,
-        responseMimeType: "application/json"
-      }
+    const text = await callServerAI('gemini-3-flash-preview', [{ role: 'user', parts: [{ text: prompt }] }], { 
+      temperature: 0.8,
+      responseMimeType: "application/json"
     });
 
-    const text = response.text;
     if (!text) throw new Error("Empty response from AI");
-    
-    // Robust JSON parsing: strip markdown code blocks if present
     const cleanJson = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(cleanJson) as KnowledgeTree;
   } catch (error: any) {
     console.error("Knowledge Tree Error:", error);
-    throw new Error(`AI Connection Error: ${error.message || "Failed to generate knowledge tree"}. Please check your API key.`);
+    throw new Error(`AI Connection Error: ${error.message || "Failed to generate knowledge tree"}.`);
   }
 }
 
@@ -154,15 +160,10 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        temperature: 0.8,
-        systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
-      }
+    return await callServerAI('gemini-3-flash-preview', [{ role: 'user', parts: [{ text: prompt }] }], { 
+      temperature: 0.8,
+      systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
     });
-    return response.text || "Failed to generate explanation.";
   } catch (error: any) {
     console.error("Explanation Error:", error);
     throw new Error(`AI Error: ${error.message || "Failed to connect to Gemini AI"}.`);

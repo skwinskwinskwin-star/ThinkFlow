@@ -149,21 +149,30 @@ export const GeniusLab: React.FC = () => {
 
                 {healthStatus && (
                   <div className="space-y-4 w-full">
-                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left overflow-auto max-h-40">
-                      <pre>{JSON.stringify(healthStatus, null, 2)}</pre>
+                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left overflow-auto max-h-40 scrollbar-hide">
+                      <pre className="text-blue-400/80">{JSON.stringify(healthStatus, null, 2)}</pre>
                     </div>
                     
                     {healthStatus.status === 'online' && (
-                      <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-xs text-green-400">
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                        <span>Сервер доступен (v{healthStatus.version})</span>
+                      <div className="flex items-center justify-between p-4 bg-green-500/5 border border-green-500/10 rounded-2xl text-xs">
+                        <div className="flex items-center gap-3 text-green-400">
+                          <div className="relative">
+                            <div className="w-2 h-2 rounded-full bg-green-400 animate-ping absolute inset-0" />
+                            <div className="w-2 h-2 rounded-full bg-green-400 relative" />
+                          </div>
+                          <span className="font-medium">Система ThinkFlow Online</span>
+                        </div>
+                        <span className="text-green-500/50 font-mono">v{healthStatus.version}</span>
                       </div>
                     )}
 
-                    {!process.env.GEMINI_API_KEY && (
-                      <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-center gap-3">
-                        <Zap className="w-4 h-4" />
-                        <span>Критическая ошибка: API_KEY не найден в браузере. Пожалуйста, убедитесь, что вы добавили API_KEY в настройки Secrets и ОБНОВИЛИ страницу (F5).</span>
+                    {healthStatus.hasKey === false && (
+                      <div className="p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl text-xs text-rose-400 flex items-start gap-3">
+                        <Zap className="w-4 h-4 mt-0.5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="font-bold">Критическая ошибка: API ключ не найден</p>
+                          <p className="opacity-70 leading-relaxed">Сервер запущен, но в его окружении нет ключа GEMINI_API_KEY. Пожалуйста, добавьте его в настройки Secrets и перезапустите сервер.</p>
+                        </div>
                       </div>
                     )}
                   </div>
