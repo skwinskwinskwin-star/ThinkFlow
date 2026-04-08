@@ -19,8 +19,8 @@ async function callAIProxy(payload: any) {
         throw new Error(errorData.error || `Ошибка сервера (${response.status})`);
       } else {
         const text = await response.text();
-        console.error('[AI PROXY] Non-JSON error response:', text.substring(0, 200));
-        throw new Error(`Ошибка сервера (${response.status}). Сервер вернул некорректный формат данных.`);
+        console.error('[AI PROXY] Non-JSON error response:', text.substring(0, 500));
+        throw new Error(`Ошибка сервера (${response.status}). Сервер вернул некорректный формат данных. Попробуйте обновить страницу.`);
       }
     }
 

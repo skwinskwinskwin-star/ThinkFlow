@@ -93,7 +93,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex text-[var(--text)] transition-colors duration-500 overflow-hidden relative">
+    <div className="h-screen flex text-[var(--text)] transition-colors duration-500 relative">
       <GeniusBackground />
       
       <Sidebar 
@@ -103,10 +103,10 @@ const App: React.FC = () => {
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       
-      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'md:ml-0' : 'ml-0'} overflow-hidden`}>
+      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'md:ml-0' : 'ml-0'}`}>
         <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 scroll-smooth">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 scroll-smooth relative">
           <div className="max-w-7xl mx-auto min-h-full flex flex-col">
             {renderView()}
           </div>

@@ -32,15 +32,18 @@ async function startServer() {
   app.use(express.json());
 
   // 1. AI Proxy Route
-  app.post("/api/ai/generate", async (req, res) => {
-    const { model, contents, config, systemInstruction } = req.body;
-    console.log(`[AI PROXY] Processing request for model: ${model || 'default'}`);
+  app.all("/api/ai/generate", async (req, res) => {
+    // Handle both POST and GET (though we expect POST)
+    const { model, contents, config, systemInstruction } = req.method === 'POST' ? req.body : req.query;
+    
+    console.log(`[AI PROXY] ${req.method} request received`);
     
     try {
       const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY;
       
       if (!key) {
-        console.error("[AI PROXY] ERROR: No API key found in Secrets!");
+        console.error("[AI PROXY] ERROR: No API key found in process.env!");
+        console.log("[AI PROXY] Available keys:", Object.keys(process.env).filter(k => k.includes("KEY") || k.includes("AI")));
         return res.status(500).json({ 
           error: "Ключ API не найден на сервере. Пожалуйста, добавьте GEMINI_API_KEY или API_KEY в меню Settings → Secrets." 
         });
@@ -48,13 +51,13 @@ async function startServer() {
 
       const genAI = new GoogleGenerativeAI(key);
       const genModel = genAI.getGenerativeModel({ 
-        model: model || "gemini-3-flash-preview",
-        systemInstruction: systemInstruction
+        model: (model as string) || "gemini-3-flash-preview",
+        systemInstruction: systemInstruction as string
       });
 
       const result = await genModel.generateContent({
-        contents: contents,
-        generationConfig: config
+        contents: contents as any,
+        generationConfig: config as any
       });
 
       const response = await result.response;
@@ -79,12 +82,12 @@ async function startServer() {
     
     const hasKey = !!(geminiKey || apiKey || aiKey || viteGeminiKey || viteApiKey);
     
-    console.log(`[HEALTH] Key check: GEMINI_API_KEY=${!!geminiKey}, API_KEY=${!!apiKey}, AI_KEY=${!!aiKey}, VITE_GEMINI_API_KEY=${!!viteGeminiKey}, VITE_API_KEY=${!!viteApiKey}`);
+    console.log(`[HEALTH] Check: hasKey=${hasKey}, GEMINI_API_KEY=${!!geminiKey}, API_KEY=${!!apiKey}`);
     
     res.json({ 
       status: "online", 
       hasKey, 
-      keysFound: {
+      keys: {
         GEMINI_API_KEY: !!geminiKey,
         API_KEY: !!apiKey,
         AI_KEY: !!aiKey,
