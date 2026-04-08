@@ -1,33 +1,11 @@
+import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// PROXY MODE: The key is hidden on the server.
-// We call our own server endpoint which has the key.
-async function callAIProxy(payload: any) {
-  console.log(`[AI PROXY] Calling /api/ai/generate with payload:`, payload);
-  const response = await fetch('/api/ai/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  
-  console.log(`[AI PROXY] Response status: ${response.status}`);
-  console.log(`[AI PROXY] Content-Type: ${response.headers.get('content-type')}`);
-
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    const text = await response.text();
-    console.error('AI Proxy returned non-JSON response:', text.substring(0, 200));
-    const snippet = text.substring(0, 50).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    throw new Error(`Server Error: Получен некорректный ответ (не JSON). Начало ответа: "${snippet}..." Пожалуйста, обновите страницу (F5).`);
-  }
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'AI Proxy Error');
-  }
-  
-  return data;
-}
+// Initialize AI directly in the frontend. 
+// The platform handles the security of process.env.GEMINI_API_KEY.
+const ai = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || "" 
+});
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
@@ -74,16 +52,15 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const result = await callAIProxy({
+    const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents,
-      config: { temperature: 0.7 },
-      systemInstruction
+      config: { temperature: 0.7, systemInstruction }
     });
     return result.text || "No response";
   } catch (error: any) {
     console.error("AI Error:", error);
-    return `Error: ${error.message}. Please ensure your API key is correctly set in Secrets.`;
+    return `Error: ${error.message}.`;
   }
 }
 
@@ -100,7 +77,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const result = await callAIProxy({
+    const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.8, responseMimeType: "application/json" }
@@ -118,11 +95,10 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
-    const result = await callAIProxy({
+    const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { temperature: 0.8 },
-      systemInstruction: "Expert educator."
+      config: { temperature: 0.8, systemInstruction: "Expert educator." }
     });
     return result.text || "Error";
   } catch (error: any) {

@@ -25,67 +25,16 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  console.log(`[SERVER] Starting ThinkFlow AI Server...`);
-  console.log(`[SERVER] Mode: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[SERVER] Starting ThinkFlow Static Server...`);
   
-  // 1. Basic Middleware
-  app.use(cors());
   app.use(express.json());
 
-  // GLOBAL LOGGER
-  app.use((req, res, next) => {
-    console.log(`[REQUEST] ${req.method} ${req.url}`);
-    next();
+  // Health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "online", time: new Date().toISOString() });
   });
 
-  // 2. AI Proxy Route - MOUNTED DIRECTLY AND FIRST
-  app.all("/api/ai/generate", async (req, res) => {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: "Method Not Allowed. Use POST." });
-    }
-    
-    console.log(`[AI PROXY] Processing request for model: ${req.body.model || 'default'}`);
-    
-    try {
-      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
-      
-      if (!key) {
-        console.error("[AI PROXY] ERROR: No API key found in Secrets!");
-        return res.status(500).json({ error: "API Key not found. Please add API_KEY to Secrets." });
-      }
-
-      const ai = new GoogleGenAI({ apiKey: key });
-      const { model, contents, config, systemInstruction } = req.body;
-
-      const response = await ai.models.generateContent({
-        model: model || "gemini-3-flash-preview",
-        contents,
-        config: {
-          ...config,
-          systemInstruction
-        }
-      });
-
-      console.log("[AI PROXY] SUCCESS: Content generated");
-      return res.json({ text: response.text });
-    } catch (error: any) {
-      console.error("[AI PROXY] ERROR:", error.message || error);
-      return res.status(500).json({ error: error.message || "Internal AI Error" });
-    }
-  });
-
-  // 3. Diagnostic Routes
-  app.get("/api/ping", (req, res) => {
-    const hasKey = !!(process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY);
-    res.json({ status: "ok", hasKey, time: new Date().toISOString() });
-  });
-
-  // 4. Catch-all for other /api routes to prevent falling through to static
-  app.all("/api/*", (req, res) => {
-    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
-  });
-
-  // 5. Static / Vite Middleware
+  // --- VITE / STATIC ---
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
