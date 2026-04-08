@@ -94,13 +94,23 @@ export const GeniusLab: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-4 text-amber-200 text-sm font-bold"
+              className="max-w-2xl mx-auto p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col md:flex-row items-center gap-6 text-amber-200"
             >
-              <AlertCircle className="w-6 h-6 shrink-0" />
-              <div className="text-left">
-                <p className="uppercase tracking-tighter">Ключ API не обнаружен</p>
-                <p className="opacity-70 font-medium">Пожалуйста, добавьте <b>GEMINI_API_KEY</b> или <b>API_KEY</b> в меню Settings → Secrets для работы ИИ.</p>
+              <AlertCircle className="w-8 h-8 shrink-0 text-amber-500" />
+              <div className="text-left flex-1">
+                <p className="uppercase tracking-tighter font-black text-lg">Ключ API не обнаружен</p>
+                <p className="opacity-70 font-medium text-sm">Пожалуйста, добавьте <b>GEMINI_API_KEY</b> или <b>API_KEY</b> в меню Settings → Secrets для работы ИИ.</p>
               </div>
+              <Button 
+                variant="outline" 
+                className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10 shrink-0"
+                onClick={() => {
+                  setHealthStatus(null);
+                  checkAIStatus().then(setHealthStatus);
+                }}
+              >
+                Проверить снова
+              </Button>
             </motion.div>
           )}
 

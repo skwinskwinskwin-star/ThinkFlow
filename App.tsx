@@ -93,7 +93,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex text-[var(--text)] transition-colors duration-500 relative">
+    <div className="min-h-screen flex text-[var(--text)] transition-colors duration-500 relative bg-[var(--bg)]">
       <GeniusBackground />
       
       <Sidebar 
@@ -106,8 +106,8 @@ const App: React.FC = () => {
       <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'md:ml-0' : 'ml-0'}`}>
         <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 scroll-smooth relative">
-          <div className="max-w-7xl mx-auto min-h-full flex flex-col">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-10 scroll-smooth relative">
+          <div className="max-w-7xl mx-auto min-h-full flex flex-col pb-20">
             {renderView()}
           </div>
         </div>

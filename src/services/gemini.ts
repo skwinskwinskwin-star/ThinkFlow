@@ -25,7 +25,9 @@ async function callAIProxy(payload: any) {
     }
 
     if (!isJson) {
-      throw new Error("Сервер вернул некорректный формат данных (не JSON).");
+      const text = await response.text();
+      console.error('[AI PROXY] Raw response (not JSON):', text.substring(0, 500));
+      throw new Error(`Сервер вернул некорректный формат данных (не JSON). Статус: ${response.status}`);
     }
 
     return await response.json();
