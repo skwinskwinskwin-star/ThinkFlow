@@ -73,7 +73,7 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    return await callServerAI('gemini-2.0-flash-exp', contents, { 
+    return await callServerAI('gemini-1.5-flash', contents, { 
       systemInstruction,
       temperature: 0.7 
     });
@@ -96,7 +96,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const text = await callServerAI('gemini-2.0-flash-exp', [{ role: 'user', parts: [{ text: prompt }] }], { 
+    const text = await callServerAI('gemini-1.5-flash', [{ role: 'user', parts: [{ text: prompt }] }], { 
       temperature: 0.8,
       responseMimeType: "application/json"
     });
@@ -112,7 +112,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
-    return await callServerAI('gemini-2.0-flash-exp', [{ role: 'user', parts: [{ text: prompt }] }], { 
+    return await callServerAI('gemini-1.5-flash', [{ role: 'user', parts: [{ text: prompt }] }], { 
       temperature: 0.8,
       systemInstruction: "Expert educator."
     });

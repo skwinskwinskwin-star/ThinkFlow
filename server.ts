@@ -2,7 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,18 +11,25 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  console.log(`[SERVER] ThinkFlow Engine v6.0 starting...`);
+  console.log(`[SERVER] ThinkFlow Engine v7.0 starting...`);
   
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json());
+
+  // Request Logger for debugging
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
 
   // --- API ROUTES ---
-  
+  const api = express.Router();
+
   // Health check
-  app.get("/api/health", (req, res) => {
+  api.get("/health", (req, res) => {
     const key = process.env.GEMINI_API_KEY || process.env.AI_KEY || process.env.API_KEY;
     res.json({ 
       status: "online", 
-      version: "6.0.0-robust-proxy",
+      version: "7.0.0-stable",
       hasKey: !!key,
       keyPrefix: key ? key.substring(0, 4) : null,
       env: process.env.NODE_ENV || 'development'
@@ -30,12 +37,12 @@ async function startServer() {
   });
 
   // AI Generation Proxy
-  app.post("/api/ai/generate", async (req, res) => {
+  api.post("/ai/generate", async (req, res) => {
     const { model, contents, config } = req.body;
     const apiKey = process.env.GEMINI_API_KEY || process.env.AI_KEY || process.env.API_KEY;
 
     if (!apiKey) {
-      console.error("[SERVER] API Key missing in environment!");
+      console.error("[SERVER] API Key missing!");
       return res.status(500).json({ 
         error: "API_KEY_MISSING", 
         message: "API Key not found on server. Please add GEMINI_API_KEY to Secrets." 
@@ -43,21 +50,36 @@ async function startServer() {
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: model || "gemini-2.0-flash-exp",
-        contents,
-        config
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const genModel = genAI.getGenerativeModel({ 
+        model: model || "gemini-1.5-flash",
+        systemInstruction: config?.systemInstruction
       });
 
-      res.json({ text: response.text });
+      // Remove systemInstruction from generationConfig to avoid duplication
+      const { systemInstruction, ...generationConfig } = config || {};
+
+      const result = await genModel.generateContent({
+        contents,
+        generationConfig
+      });
+
+      const response = await result.response;
+      res.json({ text: response.text() });
     } catch (error: any) {
       console.error("[SERVER AI ERROR]", error);
       res.status(500).json({ 
         error: "AI_FAILED", 
-        message: error.message || "Gemini API call failed" 
+        message: error.message || "Gemative AI call failed" 
       });
     }
+  });
+
+  app.use("/api", api);
+
+  // Catch-all for /api that didn't match any route
+  app.use("/api/*", (req, res) => {
+    res.status(404).json({ error: "API route not found", path: req.originalUrl });
   });
 
   // --- VITE / STATIC ---
@@ -76,7 +98,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[SERVER] Final version running on http://localhost:${PORT}`);
+    console.log(`[SERVER] ThinkFlow is live on http://localhost:${PORT}`);
   });
 }
 
