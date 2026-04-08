@@ -16,8 +16,9 @@ async function callAIProxy(payload: any) {
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
-    console.error('AI Proxy returned non-JSON response:', text);
-    throw new Error(`Server Error: Получен некорректный ответ от сервера (HTML вместо JSON). Пожалуйста, обновите страницу (F5).`);
+    console.error('AI Proxy returned non-JSON response:', text.substring(0, 200));
+    const snippet = text.substring(0, 50).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    throw new Error(`Server Error: Получен некорректный ответ (не JSON). Начало ответа: "${snippet}..." Пожалуйста, обновите страницу (F5).`);
   }
 
   const data = await response.json();

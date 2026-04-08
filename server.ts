@@ -32,9 +32,19 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // GLOBAL LOGGER
+  app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+  });
+
   // 2. AI Proxy Route - MOUNTED DIRECTLY AND FIRST
-  app.post("/api/ai/generate", async (req, res) => {
-    console.log(`[AI PROXY] Request received for model: ${req.body.model || 'default'}`);
+  app.all("/api/ai/generate", async (req, res) => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: "Method Not Allowed. Use POST." });
+    }
+    
+    console.log(`[AI PROXY] Processing request for model: ${req.body.model || 'default'}`);
     
     try {
       const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
