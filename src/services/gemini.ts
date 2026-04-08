@@ -9,12 +9,19 @@ async function callAIProxy(payload: any) {
     body: JSON.stringify(payload)
   });
   
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    console.error('AI Proxy returned non-JSON response:', text);
+    throw new Error(`Server Error: Получен некорректный ответ от сервера (HTML вместо JSON). Пожалуйста, обновите страницу (F5).`);
+  }
+
+  const data = await response.json();
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error || 'AI Proxy Error');
+    throw new Error(data.error || 'AI Proxy Error');
   }
   
-  return await response.json();
+  return data;
 }
 
 const PERSONA_PROMPTS = {

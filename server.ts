@@ -2,16 +2,21 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+console.log("[SERVER] Booting ThinkFlow AI Proxy Server...");
+
 // Initialize AI on the server where the key is safe
 const getAiClient = () => {
   const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
-  if (!key) return null;
-  return new GoogleGenerativeAI(key);
+  if (!key) {
+    console.warn("[SERVER] No API key found in environment variables!");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey: key });
 };
 
 async function startServer() {
@@ -22,31 +27,37 @@ async function startServer() {
   
   app.use(express.json());
 
+  // Diagnostic endpoint
+  app.get("/api/ping", (req, res) => {
+    res.json({ message: "pong", time: new Date().toISOString() });
+  });
+
   // Proxy route for AI generation - KEY NEVER LEAVES THE SERVER
   app.post("/api/ai/generate", async (req, res) => {
+    console.log(`[SERVER] AI Request received for model: ${req.body.model}`);
     try {
       const { model, contents, config, systemInstruction } = req.body;
       const ai = getAiClient();
       
       if (!ai) {
-        return res.status(500).json({ error: "API Key not configured on server. Please add GEMINI_API_KEY to Secrets." });
+        console.error("[SERVER] AI Client initialization failed (no key)");
+        return res.status(500).json({ error: "API Key not configured on server. Please add API_KEY to Secrets." });
       }
 
-      const genModel = ai.getGenerativeModel({ 
-        model: model || "gemini-1.5-flash",
-        systemInstruction: systemInstruction
-      });
-
-      const result = await genModel.generateContent({
+      const response = await ai.models.generateContent({
+        model: model || "gemini-3-flash-preview",
         contents,
-        generationConfig: config
+        config: {
+          ...config,
+          systemInstruction
+        }
       });
 
-      const response = await result.response;
-      res.json({ text: response.text() });
+      console.log("[SERVER] AI Response generated successfully");
+      res.json({ text: response.text });
     } catch (error: any) {
-      console.error("Server AI Error:", error);
-      res.status(500).json({ error: error.message });
+      console.error("[SERVER] AI Proxy Error:", error);
+      res.status(500).json({ error: error.message || "Internal Server Error" });
     }
   });
 
