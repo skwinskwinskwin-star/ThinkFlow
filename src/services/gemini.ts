@@ -2,9 +2,13 @@ import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize the Gemini AI client directly on the frontend
-// The platform automatically injects GEMINI_API_KEY into process.env
+// We try to get the key from the defined process.env
+const getApiKey = () => {
+  return process.env.GEMINI_API_KEY || '';
+};
+
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || ''
+  apiKey: getApiKey()
 });
 
 const PERSONA_PROMPTS = {
@@ -60,7 +64,7 @@ export async function askThinkFlowAI(
     return response.text || "No response";
   } catch (error: any) {
     console.error("AI Error:", error);
-    return `Error: ${error.message}. Please ensure GEMINI_API_KEY is set in Secrets.`;
+    return `Error: ${error.message}. Please ensure your API key is correctly set in Secrets and refresh the page.`;
   }
 }
 

@@ -6,13 +6,20 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     
-    // We prioritize process.env (injected by platform) then .env files
-    const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.AI_KEY || env.AI_KEY || '';
+    // Check all possible names for the API key from both process.env and .env files
+    const apiKey = process.env.GEMINI_API_KEY || 
+                   env.GEMINI_API_KEY || 
+                   process.env.API_KEY || 
+                   env.API_KEY || 
+                   process.env.AI_KEY || 
+                   env.AI_KEY || 
+                   '';
+
+    console.log('Vite Build: API Key status:', apiKey ? 'FOUND (starts with ' + apiKey.substring(0, 3) + '...)' : 'NOT FOUND');
 
     return {
       plugins: [react(), tailwindcss()],
       define: {
-        // This makes process.env.GEMINI_API_KEY available in the browser
         'process.env.GEMINI_API_KEY': JSON.stringify(apiKey),
       },
       resolve: {
