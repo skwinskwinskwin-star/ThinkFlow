@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,7 @@ async function startServer() {
   console.log(`[SERVER] Mode: ${process.env.NODE_ENV || 'development'}`);
   
   // 1. Basic Middleware
+  app.use(cors());
   app.use(express.json());
 
   // 2. AI Proxy Route - MOUNTED DIRECTLY AND FIRST
@@ -68,7 +70,12 @@ async function startServer() {
     res.json({ status: "ok", hasKey, time: new Date().toISOString() });
   });
 
-  // 4. Static / Vite Middleware
+  // 4. Catch-all for other /api routes to prevent falling through to static
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
+  });
+
+  // 5. Static / Vite Middleware
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

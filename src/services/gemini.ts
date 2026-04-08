@@ -3,12 +3,16 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 // PROXY MODE: The key is hidden on the server.
 // We call our own server endpoint which has the key.
 async function callAIProxy(payload: any) {
+  console.log(`[AI PROXY] Calling /api/ai/generate with payload:`, payload);
   const response = await fetch('/api/ai/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   
+  console.log(`[AI PROXY] Response status: ${response.status}`);
+  console.log(`[AI PROXY] Content-Type: ${response.headers.get('content-type')}`);
+
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
@@ -70,7 +74,7 @@ export async function askThinkFlowAI(
 
   try {
     const result = await callAIProxy({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents,
       config: { temperature: 0.7 },
       systemInstruction
@@ -96,7 +100,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 
   try {
     const result = await callAIProxy({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.8, responseMimeType: "application/json" }
     });
@@ -114,7 +118,7 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
     const result = await callAIProxy({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.8 },
       systemInstruction: "Expert educator."
