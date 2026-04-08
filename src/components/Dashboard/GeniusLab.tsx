@@ -31,22 +31,11 @@ export const GeniusLab: React.FC = () => {
     }
   };
 
-  const [debugMode, setDebugMode] = useState(false);
-
-  const getApiKeyStatus = () => {
-    const key = (window as any).GEMINI_API_KEY || document.cookie.includes('__GEMINI_KEY') || process.env.GEMINI_API_KEY;
-    return key ? 'DETECTED' : 'MISSING';
-  };
-
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
     setIsLoading(true);
     setError(null);
     try {
-      const status = getApiKeyStatus();
-      if (status === 'MISSING') {
-        throw new Error("API_KEY_NOT_FOUND: Ключ не найден в браузере. Пожалуйста, убедитесь, что вы добавили его в Secrets и ОБНОВИЛИ страницу (F5).");
-      }
       const generatedTree = await generateKnowledgeTree(topic, profile);
       setTree(generatedTree);
       setSelectedNode(generatedTree.nodes[0]);
@@ -154,61 +143,12 @@ export const GeniusLab: React.FC = () => {
                 </div>
               </div>
               
-              <div className="w-full space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button 
-                    onClick={() => window.location.reload()}
-                    className="bg-white text-black hover:bg-gray-200 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px]"
-                  >
-                    Перезагрузить страницу (F5)
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setDebugMode(!debugMode)}
-                    className="border-white/10 hover:bg-white/5 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px]"
-                  >
-                    {debugMode ? 'Скрыть отладку' : 'Режим отладки'}
-                  </Button>
-                </div>
-
-                {debugMode && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    className="p-6 rounded-3xl bg-black/40 border border-white/5 space-y-4 font-mono text-[10px]"
-                  >
-                    <div className="flex justify-between border-b border-white/5 pb-2">
-                      <span className="text-gray-500 uppercase">API Key Status:</span>
-                      <span className={getApiKeyStatus() === 'DETECTED' ? 'text-green-400' : 'text-rose-400'}>{getApiKeyStatus()}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-white/5 pb-2">
-                      <span className="text-gray-500 uppercase">Cookies:</span>
-                      <span className="text-blue-400">{document.cookie.includes('__GEMINI_KEY') ? 'Found __GEMINI_KEY' : 'None'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500 uppercase">Window Object:</span>
-                      <span className="text-blue-400">{(window as any).GEMINI_API_KEY ? 'Found GEMINI_API_KEY' : 'None'}</span>
-                    </div>
-                  </motion.div>
-                )}
-
-                <div className="p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10 space-y-4">
-                  <p className="text-indigo-400 font-black uppercase tracking-widest text-[10px] text-center">Инструкция по исправлению:</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      "Откройте Settings → Secrets",
-                      "Добавьте GEMINI_API_KEY (или API_KEY)",
-                      "Нажмите Save",
-                      "ОБЯЗАТЕЛЬНО обновите страницу (F5)"
-                    ].map((step, i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-                        <span className="text-indigo-500 font-black text-[10px]">{i + 1}</span>
-                        <p className="text-[11px] text-gray-300">{step}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <Button 
+                onClick={() => window.location.reload()}
+                className="w-full bg-white text-black hover:bg-gray-200 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px]"
+              >
+                Попробовать снова
+              </Button>
             </motion.div>
           )}
 

@@ -2,9 +2,17 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize AI on the server where the key is safe
+const getAiClient = () => {
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
+  if (!key) return null;
+  return new GoogleGenerativeAI(key);
+};
 
 async function startServer() {
   const app = express();
@@ -13,6 +21,34 @@ async function startServer() {
   console.log(`[SERVER] ThinkFlow Static Server starting...`);
   
   app.use(express.json());
+
+  // Proxy route for AI generation - KEY NEVER LEAVES THE SERVER
+  app.post("/api/ai/generate", async (req, res) => {
+    try {
+      const { model, contents, config, systemInstruction } = req.body;
+      const ai = getAiClient();
+      
+      if (!ai) {
+        return res.status(500).json({ error: "API Key not configured on server. Please add GEMINI_API_KEY to Secrets." });
+      }
+
+      const genModel = ai.getGenerativeModel({ 
+        model: model || "gemini-1.5-flash",
+        systemInstruction: systemInstruction
+      });
+
+      const result = await genModel.generateContent({
+        contents,
+        generationConfig: config
+      });
+
+      const response = await result.response;
+      res.json({ text: response.text() });
+    } catch (error: any) {
+      console.error("Server AI Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Health check
   app.get("/api/health", (req, res) => {
