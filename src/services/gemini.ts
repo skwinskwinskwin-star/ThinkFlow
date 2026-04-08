@@ -1,10 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
+// Helper to get cookie value
+const getCookie = (name: string) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+};
+
 // Initialize the Gemini AI client directly on the frontend
-// We try to get the key from the defined process.env
+// We try multiple sources for the key
 const getApiKey = () => {
-  return process.env.GEMINI_API_KEY || '';
+  return (window as any).GEMINI_API_KEY || 
+         getCookie('__GEMINI_KEY') || 
+         process.env.GEMINI_API_KEY || 
+         '';
 };
 
 const ai = new GoogleGenAI({ 
