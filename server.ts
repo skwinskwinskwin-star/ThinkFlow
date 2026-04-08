@@ -10,31 +10,53 @@ const __dirname = path.dirname(__filename);
 
 console.log("[SERVER] Booting ThinkFlow AI Proxy Server...");
 
-// Initialize AI on the server where the key is safe
-const getAiClient = () => {
-  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
-  console.log(`[SERVER] API Key check: ${key ? 'PRESENT (starts with ' + key.substring(0, 4) + '...)' : 'MISSING'}`);
-  if (!key) {
-    console.warn("[SERVER] No API key found in environment variables!");
-    return null;
-  }
-  return new GoogleGenAI({ apiKey: key });
-};
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  console.log(`[SERVER] Starting ThinkFlow Static Server...`);
+  console.log(`[SERVER] Starting ThinkFlow AI Proxy Server...`);
   
+  app.use(cors());
   app.use(express.json());
 
-  // Health check
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "online", time: new Date().toISOString() });
+  // 1. AI Proxy Route - MUST BE FIRST
+  app.post("/api/ai/generate", async (req, res) => {
+    console.log(`[AI PROXY] Request for model: ${req.body.model || 'default'}`);
+    
+    try {
+      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
+      
+      if (!key) {
+        console.error("[AI PROXY] ERROR: No API key found in Secrets!");
+        return res.status(500).json({ error: "Ключ API не найден на сервере. Пожалуйста, добавьте GEMINI_API_KEY в меню Settings -> Secrets." });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: key });
+      const { model, contents, config, systemInstruction } = req.body;
+
+      const response = await ai.models.generateContent({
+        model: model || "gemini-3-flash-preview",
+        contents,
+        config: {
+          ...config,
+          systemInstruction
+        }
+      });
+
+      return res.json({ text: response.text });
+    } catch (error: any) {
+      console.error("[AI PROXY] ERROR:", error.message || error);
+      return res.status(500).json({ error: error.message || "Internal AI Error" });
+    }
   });
 
-  // --- VITE / STATIC ---
+  // 2. Diagnostic Route
+  app.get("/api/health", (req, res) => {
+    const hasKey = !!(process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY);
+    res.json({ status: "online", hasKey, time: new Date().toISOString() });
+  });
+
+  // 3. Vite / Static Middleware
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

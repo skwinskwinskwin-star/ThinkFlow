@@ -1,14 +1,31 @@
-import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Helper to get AI client with latest env vars
-const getAI = () => {
-  const key = process.env.GEMINI_API_KEY || "";
-  if (!key) {
-    throw new Error("Ключ API не найден. Пожалуйста, добавьте GEMINI_API_KEY в меню Settings -> Secrets.");
+// PROXY MODE: The key is hidden on the server.
+// This is the ONLY secure and working way in this environment.
+async function callAIProxy(payload: any) {
+  try {
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown Server Error' }));
+      throw new Error(errorData.error || `Server returned ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error("Сервер вернул некорректный формат данных (не JSON).");
+    }
+
+    return await response.json();
+  } catch (err: any) {
+    console.error('[AI PROXY ERROR]', err);
+    throw err;
   }
-  return new GoogleGenAI({ apiKey: key });
-};
+}
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
@@ -42,7 +59,6 @@ export async function askThinkFlowAI(
   attachment?: { data: string; mimeType: string }
 ) {
   const systemInstruction = PERSONA_PROMPTS[type](profile);
-  const ai = getAI();
   
   const contents: any[] = history.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
@@ -56,15 +72,16 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const result = await ai.models.generateContent({
+    const result = await callAIProxy({
       model: "gemini-3-flash-preview",
       contents,
-      config: { temperature: 0.7, systemInstruction }
+      config: { temperature: 0.7 },
+      systemInstruction
     });
     return result.text || "No response";
   } catch (error: any) {
     console.error("AI Error:", error);
-    return `Error: ${error.message}.`;
+    throw error;
   }
 }
 
@@ -81,8 +98,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const ai = getAI();
-    const result = await ai.models.generateContent({
+    const result = await callAIProxy({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.8, responseMimeType: "application/json" }
@@ -93,22 +109,22 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
     return JSON.parse(cleanJson) as KnowledgeTree;
   } catch (error: any) {
     console.error("Knowledge Tree Error:", error);
-    throw new Error(`AI Error: ${error.message}`);
+    throw error;
   }
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
-    const ai = getAI();
-    const result = await ai.models.generateContent({
+    const result = await callAIProxy({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { temperature: 0.8, systemInstruction: "Expert educator." }
+      config: { temperature: 0.8 },
+      systemInstruction: "Expert educator."
     });
     return result.text || "Error";
   } catch (error: any) {
     console.error("Explanation Error:", error);
-    throw new Error(`AI Error: ${error.message}`);
+    throw error;
   }
 }
