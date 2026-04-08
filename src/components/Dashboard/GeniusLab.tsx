@@ -35,8 +35,11 @@ export const GeniusLab: React.FC = () => {
     if (!topic.trim() || !profile) return;
     setIsLoading(true);
     setError(null);
-    setHealthStatus(null);
     try {
+      // Check if API key is present in the bundle
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("API_KEY_MISSING: Gemini API Key is not found in the application bundle. Please check your Secrets in Settings and refresh the page.");
+      }
       const generatedTree = await generateKnowledgeTree(topic, profile);
       setTree(generatedTree);
       setSelectedNode(generatedTree.nodes[0]);
@@ -132,65 +135,39 @@ export const GeniusLab: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 p-6 rounded-3xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex flex-col items-center gap-4 max-w-xl mx-auto"
+              className="mt-8 p-8 rounded-[2.5rem] bg-red-500/5 border border-red-500/20 text-red-400 text-sm font-bold flex flex-col items-center gap-6 max-w-xl mx-auto backdrop-blur-xl"
             >
-              <div className="flex items-center gap-2 text-center">
-                <Zap className="w-4 h-4 shrink-0" />
-                {error}
+              <div className="flex items-start gap-4 text-left w-full">
+                <Zap className="w-6 h-6 shrink-0 mt-1" />
+                <div className="space-y-2">
+                  <p className="text-white text-lg uppercase tracking-tighter font-black">Ошибка ИИ</p>
+                  <p className="opacity-80 font-medium leading-relaxed">{error}</p>
+                </div>
               </div>
               
-              <div className="flex flex-col gap-4 w-full">
-                <Button 
-                  onClick={checkServerHealth}
-                  className="bg-white/10 hover:bg-white/20 border border-white/10 text-white text-[10px] py-2 rounded-xl"
-                >
-                  Проверить соединение с сервером
-                </Button>
-
-                {healthStatus && (
-                  <div className="space-y-4 w-full">
-                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-left overflow-auto max-h-40 scrollbar-hide">
-                      <pre className="text-blue-400/80">{JSON.stringify(healthStatus, null, 2)}</pre>
+              <div className="w-full space-y-6">
+                <div className="p-6 rounded-3xl bg-black/40 border border-white/5 space-y-4">
+                  <p className="text-white font-black uppercase tracking-widest text-[10px] text-center">Как это исправить:</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] text-indigo-400 font-black">1</div>
+                      <p className="text-[11px] text-gray-300">Нажмите <b>⚙️ Settings</b> (слева внизу)</p>
                     </div>
-                    
-                    {healthStatus.status === 'online' && (
-                      <div className="flex items-center justify-between p-4 bg-green-500/5 border border-green-500/10 rounded-2xl text-xs">
-                        <div className="flex items-center gap-3 text-green-400">
-                          <div className="relative">
-                            <div className="w-2 h-2 rounded-full bg-green-400 animate-ping absolute inset-0" />
-                            <div className="w-2 h-2 rounded-full bg-green-400 relative" />
-                          </div>
-                          <span className="font-medium">Система ThinkFlow Online</span>
-                        </div>
-                        <span className="text-green-500/50 font-mono">v{healthStatus.version}</span>
-                      </div>
-                    )}
-
-                    {healthStatus.hasKey === false && (
-                      <div className="p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl text-xs text-rose-400 flex items-start gap-3">
-                        <Zap className="w-4 h-4 mt-0.5 shrink-0" />
-                        <div className="space-y-1">
-                          <p className="font-bold">Критическая ошибка: API ключ не найден</p>
-                          <p className="opacity-70 leading-relaxed">Сервер запущен, но в его окружении нет ключа GEMINI_API_KEY. Пожалуйста, добавьте его в настройки Secrets и перезапустите сервер.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {(error.toLowerCase().includes("api key") || error.toLowerCase().includes("permission") || error.toLowerCase().includes("html error page")) && (
-                  <div className="text-xs text-gray-400 font-medium space-y-4 text-center w-full">
-                    <div className="space-y-2">
-                      <p className="text-white font-black uppercase tracking-widest text-[10px]">Инструкция по исправлению:</p>
-                      <ol className="list-decimal list-inside text-left space-y-1 mx-auto max-w-xs bg-black/20 p-4 rounded-xl border border-white/5">
-                        <li>Нажмите на <b>⚙️ Settings</b> (слева внизу).</li>
-                        <li>Выберите вкладку <b>Secrets</b>.</li>
-                        <li>Добавьте <b>API_KEY</b> и ваш ключ.</li>
-                        <li>Нажмите <b>Save</b> и <b>обновите страницу (F5)</b>.</li>
-                      </ol>
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] text-indigo-400 font-black">2</div>
+                      <p className="text-[11px] text-gray-300">Вкладка <b>Secrets</b> → добавьте <b>GEMINI_API_KEY</b></p>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] text-indigo-400 font-black">3</div>
+                      <p className="text-[11px] text-gray-300">Нажмите <b>Save</b> и <b>обновите страницу (F5)</b></p>
                     </div>
                   </div>
-                )}
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2 rounded-full bg-white/5 border border-white/5 text-[9px] font-mono text-gray-500">
+                  <span>System Status: {process.env.GEMINI_API_KEY ? 'Key Detected' : 'Key Missing'}</span>
+                  <span>v8.0.0-stable</span>
+                </div>
               </div>
             </motion.div>
           )}
