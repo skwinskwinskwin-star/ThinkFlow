@@ -66,40 +66,12 @@ async function startServer() {
       appType: "spa",
     });
     
-    // Inject API Key into HTML in dev mode
-    app.use(async (req, res, next) => {
-      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY || '';
-      const originalWrite = res.write;
-      const originalEnd = res.end;
-
-      // We only want to intercept HTML responses
-      if (req.url.endsWith('/') || req.url.endsWith('.html') || !req.url.includes('.')) {
-        // This is a bit complex with Vite middleware, so we'll use a simpler approach:
-        // Just set a cookie or a header that the frontend can read.
-        res.setHeader('Set-Cookie', `__GEMINI_KEY=${key}; Path=/; SameSite=Strict`);
-      }
-      next();
-    });
-
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY || '';
-      // In production, we can read the file and inject the script
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <script>window.GEMINI_API_KEY = "${key}";</script>
-          </head>
-          <body>
-            <div id="root"></div>
-            <script type="module" src="/src/main.tsx"></script>
-          </body>
-        </html>
-      `);
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
