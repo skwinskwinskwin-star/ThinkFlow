@@ -1,10 +1,32 @@
-import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Initialize the Gemini AI client directly on the frontend
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || ''
-});
+async function callServerAI(model: string, contents: any[], config: any) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, contents, config })
+    });
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Non-JSON response from server:", text);
+      throw new Error("Server returned an invalid response (HTML). This usually means the API route is not working.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `Server error: ${response.status}`);
+    }
+
+    return data.text;
+  } catch (error: any) {
+    console.error("AI Proxy Error:", error);
+    throw error;
+  }
+}
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
@@ -51,15 +73,13 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents,
-      config: { systemInstruction, temperature: 0.7 }
+    return await callServerAI('gemini-2.0-flash-exp', contents, { 
+      systemInstruction,
+      temperature: 0.7 
     });
-    return response.text || "No response";
   } catch (error: any) {
     console.error("AI Error:", error);
-    return `Error: ${error.message}. Please check your API key.`;
+    return `Error: ${error.message}. Please check your connection and API key in Settings.`;
   }
 }
 
@@ -76,13 +96,12 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { temperature: 0.8, responseMimeType: "application/json" }
+    const text = await callServerAI('gemini-2.0-flash-exp', [{ role: 'user', parts: [{ text: prompt }] }], { 
+      temperature: 0.8,
+      responseMimeType: "application/json"
     });
 
-    const text = response.text || "";
+    if (!text) throw new Error("Empty response from AI");
     const cleanJson = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(cleanJson) as KnowledgeTree;
   } catch (error: any) {
@@ -93,12 +112,10 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { temperature: 0.8, systemInstruction: "Expert educator." }
+    return await callServerAI('gemini-2.0-flash-exp', [{ role: 'user', parts: [{ text: prompt }] }], { 
+      temperature: 0.8,
+      systemInstruction: "Expert educator."
     });
-    return response.text || "Error";
   } catch (error: any) {
     throw new Error(`AI Error: ${error.message}`);
   }
