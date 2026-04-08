@@ -1,11 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Initialize AI directly in the frontend. 
-// The platform handles the security of process.env.GEMINI_API_KEY.
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || "" 
-});
+// Helper to get AI client with latest env vars
+const getAI = () => {
+  const key = process.env.GEMINI_API_KEY || "";
+  if (!key) {
+    throw new Error("Ключ API не найден. Пожалуйста, добавьте GEMINI_API_KEY в меню Settings -> Secrets.");
+  }
+  return new GoogleGenAI({ apiKey: key });
+};
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
@@ -39,6 +42,7 @@ export async function askThinkFlowAI(
   attachment?: { data: string; mimeType: string }
 ) {
   const systemInstruction = PERSONA_PROMPTS[type](profile);
+  const ai = getAI();
   
   const contents: any[] = history.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
@@ -77,6 +81,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
+    const ai = getAI();
     const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -95,6 +100,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
+    const ai = getAI();
     const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
