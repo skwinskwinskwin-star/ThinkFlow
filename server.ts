@@ -12,6 +12,7 @@ console.log("[SERVER] Booting ThinkFlow AI Proxy Server...");
 // Initialize AI on the server where the key is safe
 const getAiClient = () => {
   const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
+  console.log(`[SERVER] API Key check: ${key ? 'PRESENT (starts with ' + key.substring(0, 4) + '...)' : 'MISSING'}`);
   if (!key) {
     console.warn("[SERVER] No API key found in environment variables!");
     return null;
@@ -26,6 +27,12 @@ async function startServer() {
   console.log(`[SERVER] ThinkFlow Static Server starting...`);
   
   app.use(express.json());
+
+  // Request logger for API
+  app.use("/api", (req, res, next) => {
+    console.log(`[API LOG] ${req.method} ${req.url}`);
+    next();
+  });
 
   // Diagnostic endpoint
   app.get("/api/ping", (req, res) => {
