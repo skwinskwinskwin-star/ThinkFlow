@@ -71,7 +71,7 @@ export const GeniusLab: React.FC = () => {
 
   if (!tree) {
     return (
-      <div className="max-w-4xl mx-auto min-h-full flex flex-col items-center py-12 md:py-20 p-6 overflow-y-auto">
+      <div className="max-w-4xl mx-auto min-h-full flex flex-col items-center py-12 md:py-20 p-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

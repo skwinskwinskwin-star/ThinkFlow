@@ -103,11 +103,11 @@ const App: React.FC = () => {
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       
-      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'md:ml-0' : 'ml-0'}`}>
+      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'md:ml-0' : 'ml-0'} overflow-hidden`}>
         <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         
-        <div className="flex-1 scroll-container custom-scrollbar p-6 md:p-10 scroll-smooth">
-          <div className="max-w-7xl mx-auto min-h-full">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 scroll-smooth">
+          <div className="max-w-7xl mx-auto min-h-full flex flex-col">
             {renderView()}
           </div>
         </div>

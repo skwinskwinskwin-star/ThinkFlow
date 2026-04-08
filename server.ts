@@ -20,6 +20,14 @@ async function startServer() {
     next();
   });
 
+  // Environment Keys Diagnostic
+  console.log("[DEBUG] Environment Keys Check:");
+  Object.keys(process.env).forEach(key => {
+    if (key.includes("KEY") || key.includes("AI")) {
+      console.log(`[DEBUG] Found key: ${key} (length: ${process.env[key]?.length})`);
+    }
+  });
+
   app.use(cors());
   app.use(express.json());
 
@@ -29,7 +37,7 @@ async function startServer() {
     console.log(`[AI PROXY] Processing request for model: ${model || 'default'}`);
     
     try {
-      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
+      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY;
       
       if (!key) {
         console.error("[AI PROXY] ERROR: No API key found in Secrets!");
@@ -66,10 +74,12 @@ async function startServer() {
     const geminiKey = process.env.GEMINI_API_KEY;
     const apiKey = process.env.API_KEY;
     const aiKey = process.env.AI_KEY;
+    const viteGeminiKey = process.env.VITE_GEMINI_API_KEY;
+    const viteApiKey = process.env.VITE_API_KEY;
     
-    const hasKey = !!(geminiKey || apiKey || aiKey);
+    const hasKey = !!(geminiKey || apiKey || aiKey || viteGeminiKey || viteApiKey);
     
-    console.log(`[HEALTH] Key check: GEMINI_API_KEY=${!!geminiKey}, API_KEY=${!!apiKey}, AI_KEY=${!!aiKey}`);
+    console.log(`[HEALTH] Key check: GEMINI_API_KEY=${!!geminiKey}, API_KEY=${!!apiKey}, AI_KEY=${!!aiKey}, VITE_GEMINI_API_KEY=${!!viteGeminiKey}, VITE_API_KEY=${!!viteApiKey}`);
     
     res.json({ 
       status: "online", 
@@ -77,10 +87,18 @@ async function startServer() {
       keysFound: {
         GEMINI_API_KEY: !!geminiKey,
         API_KEY: !!apiKey,
-        AI_KEY: !!aiKey
+        AI_KEY: !!aiKey,
+        VITE_GEMINI_API_KEY: !!viteGeminiKey,
+        VITE_API_KEY: !!viteApiKey
       },
       time: new Date().toISOString() 
     });
+  });
+
+  // API 404 Handler
+  app.use("/api/*", (req, res) => {
+    console.warn(`[API 404] ${req.method} ${req.url}`);
+    res.status(404).json({ error: `API Route not found: ${req.method} ${req.url}` });
   });
 
   // 3. Vite / Static Middleware
