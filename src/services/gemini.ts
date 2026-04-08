@@ -1,5 +1,11 @@
-
+import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
+
+// Initialize the Gemini AI client
+// The API key is injected via Vite's define in vite.config.ts
+const ai = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY || ''
+});
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
@@ -44,51 +50,6 @@ const PERSONA_PROMPTS = {
   `
 };
 
-async function callServerAI(model: string, contents: any[], config: any, systemInstruction?: string) {
-  try {
-    const response = await fetch("/api/ai/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, contents, config, systemInstruction })
-    });
-
-    const contentType = response.headers.get("content-type");
-    const text = await response.text();
-    
-    if (!response.ok) {
-      let errorMessage = `Server error: ${response.status}`;
-      if (contentType && contentType.includes("application/json")) {
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          console.error("Failed to parse error JSON:", text);
-        }
-      } else {
-        console.error("Non-JSON error response:", text);
-        errorMessage = `AI Server returned an HTML error page. This usually means the server route was not found or the server crashed.`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    if (contentType && contentType.includes("application/json")) {
-      try {
-        const data = JSON.parse(text);
-        return data.text;
-      } catch (e) {
-        console.error("Failed to parse JSON response:", text);
-        throw new Error("AI Server returned an invalid JSON response.");
-      }
-    } else {
-      console.error("Expected JSON but got:", contentType, text);
-      throw new Error("AI Server returned an unexpected response format (HTML instead of JSON).");
-    }
-  } catch (error: any) {
-    console.error("AI Proxy Error:", error);
-    throw error;
-  }
-}
-
 export async function askThinkFlowAI(
   type: AIModelType,
   prompt: string,
@@ -103,7 +64,7 @@ export async function askThinkFlowAI(
     if (m.attachment) {
       parts.push({ inlineData: { data: m.attachment.data, mimeType: m.attachment.mimeType } });
     }
-    return { role: m.role, parts };
+    return { role: m.role === 'user' ? 'user' : 'model', parts };
   });
 
   const currentParts: any[] = [{ text: prompt }];
@@ -114,15 +75,18 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    return await callServerAI('gemini-3-flash-preview', contents, { temperature: 0.7 }, systemInstruction);
-  } catch (error) {
-    console.error("Gemini 3 Flash Error, trying 1.5 Flash:", error);
-    try {
-      return await callServerAI('gemini-1.5-flash', contents, { temperature: 0.7 }, systemInstruction);
-    } catch (innerError) {
-      console.error("Gemini 1.5 Flash Error:", innerError);
-      return "An error occurred while connecting to the AI. This might be due to an invalid API key or network issues.";
-    }
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents,
+      config: {
+        systemInstruction,
+        temperature: 0.7
+      }
+    });
+    return response.text || "I'm sorry, I couldn't generate a response.";
+  } catch (error: any) {
+    console.error("AI Error:", error);
+    return `Error: ${error.message || "Failed to connect to AI"}. Please check your API key.`;
   }
 }
 
@@ -155,32 +119,26 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
     IMPORTANT: Return ONLY the JSON object. No markdown formatting.
   `;
 
-  const modelsToTry = ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview'];
-  let lastError: any = null;
-
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`Attempting Knowledge Tree generation with ${modelName}...`);
-      const text = await callServerAI(modelName, [{ role: 'user', parts: [{ text: prompt }] }], { 
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
         temperature: 0.8,
         responseMimeType: "application/json"
-      });
+      }
+    });
 
-      if (!text) throw new Error(`Empty response from ${modelName}`);
-      
-      // Robust JSON parsing: strip markdown code blocks if present
-      const cleanJson = text.replace(/```json\n?|```/g, '').trim();
-      return JSON.parse(cleanJson) as KnowledgeTree;
-    } catch (error) {
-      console.error(`Error with ${modelName}:`, error);
-      lastError = error;
-      // Continue to next model
-    }
+    const text = response.text;
+    if (!text) throw new Error("Empty response from AI");
+    
+    // Robust JSON parsing: strip markdown code blocks if present
+    const cleanJson = text.replace(/```json\n?|```/g, '').trim();
+    return JSON.parse(cleanJson) as KnowledgeTree;
+  } catch (error: any) {
+    console.error("Knowledge Tree Error:", error);
+    throw new Error(`AI Connection Error: ${error.message || "Failed to generate knowledge tree"}. Please check your API key.`);
   }
-
-  console.error("All models failed for Knowledge Tree generation.");
-  const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error(`AI Connection Error: ${errorMessage}. Please check your API key and network.`);
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
@@ -196,20 +154,17 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
   `;
 
   try {
-    return await callServerAI('gemini-3-flash-preview', [{ role: 'user', parts: [{ text: prompt }] }], { 
-      temperature: 0.8,
-      systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
-    });
-  } catch (error) {
-    console.error("Gemini 3 Flash Error, trying 3.1 Flash Lite:", error);
-    try {
-      return await callServerAI('gemini-3.1-flash-lite-preview', [{ role: 'user', parts: [{ text: prompt }] }], { 
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
         temperature: 0.8,
         systemInstruction: "You are an expert educator who specializes in personalized learning through analogies."
-      });
-    } catch (innerError) {
-      console.error("Gemini 3.1 Flash Lite Error:", innerError);
-      throw new Error("Failed to connect to Gemini AI. Please check your API key.");
-    }
+      }
+    });
+    return response.text || "Failed to generate explanation.";
+  } catch (error: any) {
+    console.error("Explanation Error:", error);
+    throw new Error(`AI Error: ${error.message || "Failed to connect to Gemini AI"}.`);
   }
 }

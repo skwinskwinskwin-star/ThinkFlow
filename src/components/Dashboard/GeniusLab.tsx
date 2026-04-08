@@ -160,10 +160,10 @@ export const GeniusLab: React.FC = () => {
                       </div>
                     )}
 
-                    {healthStatus.hasKey === false && (
+                    {!process.env.GEMINI_API_KEY && (
                       <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-center gap-3">
                         <Zap className="w-4 h-4" />
-                        <span>Критическая ошибка: API_KEY не найден на сервере. Проверьте настройки Secrets.</span>
+                        <span>Критическая ошибка: API_KEY не найден в браузере. Пожалуйста, убедитесь, что вы добавили API_KEY в настройки Secrets и ОБНОВИЛИ страницу (F5).</span>
                       </div>
                     )}
                   </div>

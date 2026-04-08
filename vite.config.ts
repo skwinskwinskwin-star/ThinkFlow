@@ -16,19 +16,9 @@ export default defineConfig(({ mode }) => {
     });
 
     return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
       plugins: [react(), tailwindcss()],
       define: {
-        'process.env.VITE_GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
-        'process.env.VITE_AI_KEY': JSON.stringify(process.env.AI_KEY || env.AI_KEY || ''),
-        'process.env.VITE_API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY || ''),
-        // Fallback for import.meta.env
-        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
-        'import.meta.env.VITE_AI_KEY': JSON.stringify(process.env.AI_KEY || env.AI_KEY || ''),
-        'import.meta.env.VITE_API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY || '')
+        'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.AI_KEY || env.AI_KEY || process.env.API_KEY || env.API_KEY || ''),
       },
       resolve: {
         alias: {
