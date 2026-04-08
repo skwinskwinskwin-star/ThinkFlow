@@ -24,35 +24,26 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  console.log(`[SERVER] ThinkFlow Static Server starting...`);
-  console.log(`[SERVER] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[SERVER] Starting ThinkFlow AI Server...`);
+  console.log(`[SERVER] Mode: ${process.env.NODE_ENV || 'development'}`);
   
-  // Create a dedicated API router
-  const apiRouter = express.Router();
-  apiRouter.use(express.json());
+  // 1. Basic Middleware
+  app.use(express.json());
 
-  // Request logger for API
-  apiRouter.use((req, res, next) => {
-    console.log(`[API LOG] ${req.method} ${req.url}`);
-    next();
-  });
-
-  // Diagnostic endpoint
-  apiRouter.get("/ping", (req, res) => {
-    res.json({ message: "pong", time: new Date().toISOString(), env: process.env.NODE_ENV || 'development' });
-  });
-
-  // Proxy route for AI generation - KEY NEVER LEAVES THE SERVER
-  apiRouter.post("/ai/generate", async (req, res) => {
-    console.log(`[SERVER] AI Request received for model: ${req.body.model || 'default'}`);
+  // 2. AI Proxy Route - MOUNTED DIRECTLY AND FIRST
+  app.post("/api/ai/generate", async (req, res) => {
+    console.log(`[AI PROXY] Request received for model: ${req.body.model || 'default'}`);
+    
     try {
-      const { model, contents, config, systemInstruction } = req.body;
-      const ai = getAiClient();
+      const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
       
-      if (!ai) {
-        console.error("[SERVER] AI Client initialization failed (no key)");
-        return res.status(500).json({ error: "API Key not configured on server. Please add API_KEY to Secrets." });
+      if (!key) {
+        console.error("[AI PROXY] ERROR: No API key found in Secrets!");
+        return res.status(500).json({ error: "API Key not found. Please add API_KEY to Secrets." });
       }
+
+      const ai = new GoogleGenAI({ apiKey: key });
+      const { model, contents, config, systemInstruction } = req.body;
 
       const response = await ai.models.generateContent({
         model: model || "gemini-3-flash-preview",
@@ -63,33 +54,21 @@ async function startServer() {
         }
       });
 
-      console.log("[SERVER] AI Response generated successfully");
-      res.json({ text: response.text });
+      console.log("[AI PROXY] SUCCESS: Content generated");
+      return res.json({ text: response.text });
     } catch (error: any) {
-      console.error("[SERVER] AI Proxy Error:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      console.error("[AI PROXY] ERROR:", error.message || error);
+      return res.status(500).json({ error: error.message || "Internal AI Error" });
     }
   });
 
-  // API 404 Handler - ENSURE JSON
-  apiRouter.use((req, res) => {
-    console.warn(`[SERVER] Unmatched API route: ${req.method} ${req.url}`);
-    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
+  // 3. Diagnostic Routes
+  app.get("/api/ping", (req, res) => {
+    const hasKey = !!(process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY);
+    res.json({ status: "ok", hasKey, time: new Date().toISOString() });
   });
 
-  // Mount API router FIRST
-  app.use("/api", apiRouter);
-
-  // Health check
-  app.get("/api/health", (req, res) => {
-    res.json({ 
-      status: "online", 
-      version: "8.0.0-frontend-only",
-      env: process.env.NODE_ENV || 'development'
-    });
-  });
-
-  // --- VITE / STATIC ---
+  // 4. Static / Vite Middleware
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
