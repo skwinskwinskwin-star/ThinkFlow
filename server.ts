@@ -25,23 +25,26 @@ async function startServer() {
   const PORT = 3000;
 
   console.log(`[SERVER] ThinkFlow Static Server starting...`);
+  console.log(`[SERVER] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
   
-  app.use(express.json());
+  // Create a dedicated API router
+  const apiRouter = express.Router();
+  apiRouter.use(express.json());
 
   // Request logger for API
-  app.use("/api", (req, res, next) => {
+  apiRouter.use((req, res, next) => {
     console.log(`[API LOG] ${req.method} ${req.url}`);
     next();
   });
 
   // Diagnostic endpoint
-  app.get("/api/ping", (req, res) => {
-    res.json({ message: "pong", time: new Date().toISOString() });
+  apiRouter.get("/ping", (req, res) => {
+    res.json({ message: "pong", time: new Date().toISOString(), env: process.env.NODE_ENV || 'development' });
   });
 
   // Proxy route for AI generation - KEY NEVER LEAVES THE SERVER
-  app.post("/api/ai/generate", async (req, res) => {
-    console.log(`[SERVER] AI Request received for model: ${req.body.model}`);
+  apiRouter.post("/ai/generate", async (req, res) => {
+    console.log(`[SERVER] AI Request received for model: ${req.body.model || 'default'}`);
     try {
       const { model, contents, config, systemInstruction } = req.body;
       const ai = getAiClient();
@@ -67,6 +70,15 @@ async function startServer() {
       res.status(500).json({ error: error.message || "Internal Server Error" });
     }
   });
+
+  // API 404 Handler - ENSURE JSON
+  apiRouter.use((req, res) => {
+    console.warn(`[SERVER] Unmatched API route: ${req.method} ${req.url}`);
+    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
+  });
+
+  // Mount API router FIRST
+  app.use("/api", apiRouter);
 
   // Health check
   app.get("/api/health", (req, res) => {
