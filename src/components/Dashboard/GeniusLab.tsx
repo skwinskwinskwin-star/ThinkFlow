@@ -71,7 +71,7 @@ export const GeniusLab: React.FC = () => {
 
   if (!tree) {
     return (
-      <div className="max-w-4xl mx-auto h-full flex flex-col items-center justify-center p-6">
+      <div className="max-w-4xl mx-auto min-h-full flex flex-col items-center py-12 md:py-20 p-6 overflow-y-auto">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -99,7 +99,7 @@ export const GeniusLab: React.FC = () => {
               <AlertCircle className="w-6 h-6 shrink-0" />
               <div className="text-left">
                 <p className="uppercase tracking-tighter">Ключ API не обнаружен</p>
-                <p className="opacity-70 font-medium">Пожалуйста, добавьте <b>GEMINI_API_KEY</b> в меню Settings → Secrets для работы ИИ.</p>
+                <p className="opacity-70 font-medium">Пожалуйста, добавьте <b>GEMINI_API_KEY</b> или <b>API_KEY</b> в меню Settings → Secrets для работы ИИ.</p>
               </div>
             </motion.div>
           )}

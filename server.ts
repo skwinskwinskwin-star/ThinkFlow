@@ -14,13 +14,19 @@ async function startServer() {
 
   console.log(`[SERVER] Starting ThinkFlow AI Proxy Server...`);
   
+  // Log all incoming requests for debugging
+  app.use((req, res, next) => {
+    console.log(`[DEBUG] ${req.method} ${req.url}`);
+    next();
+  });
+
   app.use(cors());
   app.use(express.json());
 
   // 1. AI Proxy Route
   app.post("/api/ai/generate", async (req, res) => {
     const { model, contents, config, systemInstruction } = req.body;
-    console.log(`[AI PROXY] Request for model: ${model || 'default'}`);
+    console.log(`[AI PROXY] Processing request for model: ${model || 'default'}`);
     
     try {
       const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY;
@@ -28,7 +34,7 @@ async function startServer() {
       if (!key) {
         console.error("[AI PROXY] ERROR: No API key found in Secrets!");
         return res.status(500).json({ 
-          error: "Ключ API не найден на сервере. Пожалуйста, добавьте GEMINI_API_KEY или API_KEY в меню Settings -> Secrets." 
+          error: "Ключ API не найден на сервере. Пожалуйста, добавьте GEMINI_API_KEY или API_KEY в меню Settings → Secrets." 
         });
       }
 
@@ -49,7 +55,6 @@ async function startServer() {
       return res.json({ text });
     } catch (error: any) {
       console.error("[AI PROXY] ERROR:", error.message || error);
-      // Ensure we return JSON even on failure
       return res.status(500).json({ 
         error: error.message || "Ошибка при обращении к ИИ. Проверьте правильность ключа API." 
       });
@@ -58,11 +63,22 @@ async function startServer() {
 
   // 2. Health check / Diagnostic
   app.get("/api/health", (req, res) => {
-    const hasKey = !!(process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY);
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.API_KEY;
+    const aiKey = process.env.AI_KEY;
+    
+    const hasKey = !!(geminiKey || apiKey || aiKey);
+    
+    console.log(`[HEALTH] Key check: GEMINI_API_KEY=${!!geminiKey}, API_KEY=${!!apiKey}, AI_KEY=${!!aiKey}`);
+    
     res.json({ 
       status: "online", 
       hasKey, 
-      keyPrefix: hasKey ? (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.AI_KEY)?.substring(0, 4) : null,
+      keysFound: {
+        GEMINI_API_KEY: !!geminiKey,
+        API_KEY: !!apiKey,
+        AI_KEY: !!aiKey
+      },
       time: new Date().toISOString() 
     });
   });

@@ -107,7 +107,7 @@ const App: React.FC = () => {
         <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         
         <div className="flex-1 scroll-container custom-scrollbar p-6 md:p-10 scroll-smooth">
-          <div className="max-w-7xl mx-auto h-full">
+          <div className="max-w-7xl mx-auto min-h-full">
             {renderView()}
           </div>
         </div>
