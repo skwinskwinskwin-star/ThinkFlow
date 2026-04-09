@@ -14,6 +14,8 @@ async function startServer() {
 
   // DYNAMIC ENV GENERATION & KEY DISCOVERY
   const getApiKeyFromEnv = () => {
+    console.log("[SERVER] Current process.env keys:", Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('GEMINI') || k.includes('AI')));
+    
     const keys = {
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
       API_KEY: process.env.API_KEY,
@@ -113,6 +115,15 @@ async function startServer() {
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "online", time: new Date().toISOString() });
+  });
+
+  app.get("/api/debug", (req, res) => {
+    res.json({
+      envKeys: Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('GEMINI') || k.includes('AI')),
+      nodeEnv: process.env.NODE_ENV,
+      hasApiKey: !!(process.env.API_KEY || process.env.GEMINI_API_KEY),
+      apiKeyLength: (process.env.API_KEY || process.env.GEMINI_API_KEY || "").length
+    });
   });
 
   // Vite / Static Middleware

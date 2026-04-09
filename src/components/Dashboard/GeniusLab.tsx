@@ -19,18 +19,31 @@ export const GeniusLab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
     setIsLoading(true);
     setError(null);
+    setDebugInfo(null);
     try {
       const generatedTree = await generateKnowledgeTree(topic, profile);
       setTree(generatedTree);
       setSelectedNode(generatedTree.nodes[0]);
     } catch (err) {
       console.error("Genius Lab Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to initialize lab");
+      const msg = err instanceof Error ? err.message : "Failed to initialize lab";
+      setError(msg);
+      
+      if (msg.includes("API Key")) {
+        try {
+          const resp = await fetch('/api/debug');
+          const data = await resp.json();
+          setDebugInfo(data);
+        } catch (e) {
+          console.error("Failed to fetch debug info");
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -137,6 +150,15 @@ export const GeniusLab: React.FC = () => {
                 <div className="space-y-2">
                   <p className="text-white text-xl uppercase tracking-tighter font-black">Системный сбой</p>
                   <p className="opacity-80 font-medium leading-relaxed">{error}</p>
+                  {debugInfo && (
+                    <div className="mt-4 p-4 bg-black/40 rounded-xl text-[10px] font-mono text-indigo-300 border border-indigo-500/30">
+                      <p className="font-bold mb-1 text-white">DIAGNOSTICS:</p>
+                      <p>Env Keys: {debugInfo.envKeys?.join(', ') || 'none'}</p>
+                      <p>Has Key: {String(debugInfo.hasApiKey)}</p>
+                      <p>Key Length: {debugInfo.apiKeyLength}</p>
+                      <p className="mt-2 text-rose-300 italic">If 'Has Key' is false, please re-add API_KEY in Settings and RESTART the server.</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
