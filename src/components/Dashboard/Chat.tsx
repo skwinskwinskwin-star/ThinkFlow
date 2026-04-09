@@ -83,17 +83,6 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
     try {
       const aiResponse = await askThinkFlowAI(type, input, profile, messages, attachment || undefined);
       
-      // Check if the response is an error message about the API key
-      if (aiResponse.includes("API_KEY")) {
-        setMessages(prev => [...prev, {
-          role: 'model',
-          text: "⚠️ **AI Connection Error**: The Genius Lab requires an API Key to function. Please contact the administrator or check the platform settings.",
-          timestamp: Date.now()
-        }]);
-        setIsLoading(false);
-        return;
-      }
-
       const modelMsg: Message = {
         role: 'model',
         text: aiResponse,

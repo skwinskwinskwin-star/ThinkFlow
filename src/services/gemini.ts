@@ -1,52 +1,19 @@
+import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// PROXY MODE: The key is hidden on the server.
-// This is the ONLY secure and working way in this environment.
-async function callAIProxy(payload: any) {
-  try {
-    const response = await fetch('/api/ai/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType && contentType.includes('application/json');
-
-    if (!response.ok) {
-      if (isJson) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Ошибка сервера (${response.status})`);
-      } else {
-        const text = await response.text();
-        console.error('[AI PROXY] Non-JSON error response:', text.substring(0, 500));
-        throw new Error(`Ошибка сервера (${response.status}). Сервер вернул некорректный формат данных. Попробуйте обновить страницу.`);
-      }
-    }
-
-    if (!isJson) {
-      const text = await response.text();
-      console.error('[AI PROXY] Raw response (not JSON):', text.substring(0, 500));
-      throw new Error(`Сервер вернул некорректный формат данных (не JSON). Статус: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (err: any) {
-    console.error('[AI PROXY ERROR]', err);
-    throw err;
-  }
-}
+// Initialize Gemini directly in the frontend as per system guidelines.
+// The API key is injected by the platform into process.env.GEMINI_API_KEY.
+const ai = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY || "" 
+});
 
 export async function checkAIStatus() {
-  try {
-    const res = await fetch('/api/health');
-    const data = await res.json();
-    console.log('[AI HEALTH CHECK]', data);
-    return data;
-  } catch (e) {
-    console.error('[AI HEALTH CHECK FAILED]', e);
-    return { status: 'offline', hasKey: false };
-  }
+  const hasKey = !!(process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY);
+  console.log('[AI STATUS CHECK] Key present:', hasKey);
+  return { 
+    status: hasKey ? "online" : "offline", 
+    hasKey 
+  };
 }
 
 const PERSONA_PROMPTS = {
@@ -94,13 +61,15 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const result = await callAIProxy({
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents,
-      config: { temperature: 0.7 },
-      systemInstruction
+      config: { 
+        temperature: 0.7,
+        systemInstruction
+      }
     });
-    return result.text || "No response";
+    return response.text || "No response";
   } catch (error: any) {
     console.error("AI Error:", error);
     throw error;
@@ -120,13 +89,16 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const result = await callAIProxy({
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { temperature: 0.8, responseMimeType: "application/json" }
+      config: { 
+        temperature: 0.8, 
+        responseMimeType: "application/json" 
+      }
     });
 
-    const text = result.text || "";
+    const text = response.text || "";
     const cleanJson = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(cleanJson) as KnowledgeTree;
   } catch (error: any) {
@@ -138,13 +110,15 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
-    const result = await callAIProxy({
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { temperature: 0.8 },
-      systemInstruction: "Expert educator."
+      config: { 
+        temperature: 0.8,
+        systemInstruction: "Expert educator."
+      }
     });
-    return result.text || "Error";
+    return response.text || "Error";
   } catch (error: any) {
     console.error("Explanation Error:", error);
     throw error;
