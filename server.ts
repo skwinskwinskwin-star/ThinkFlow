@@ -26,7 +26,7 @@ async function startServer() {
       if (v) console.log(`[SERVER] Found in process.env: ${k}=${v.substring(0, 4)}...`);
     });
 
-    const foundKey = Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
+    const foundKey = Object.values(keys).find(k => k && k.length > 5) || "";
     
     return foundKey;
   };
@@ -42,7 +42,7 @@ async function startServer() {
         const filePath = path.join(process.cwd(), file);
         if (fs.existsSync(filePath)) {
           const content = fs.readFileSync(filePath, 'utf8');
-          const match = content.match(/AIza[a-zA-Z0-9_-]{35}/);
+          const match = content.match(/AIza[a-zA-Z0-9_-]{30,}/) || content.match(/[a-zA-Z0-9_-]{35,}/);
           if (match) {
             apiKey = match[0];
             console.log(`[SERVER] Found key in ${file}: ${apiKey.substring(0, 4)}...`);
@@ -103,7 +103,7 @@ async function startServer() {
   // 2. API ROUTES
   app.get("/api/config", (req, res) => {
     const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY, process.env.VITE_GEMINI_API_KEY];
-    const currentKey = keys.find(k => k && k.startsWith('AIza')) || apiKey || "";
+    const currentKey = keys.find(k => k && k.length > 5) || apiKey || "";
     
     res.json({ 
       apiKey: currentKey,

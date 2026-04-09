@@ -6,46 +6,53 @@ let aiInstance: any = null;
 let cachedKey: string | null = null;
 
 const getApiKey = async () => {
-  console.log("[GEMINI] Starting key discovery...");
+  if (cachedKey) return cachedKey;
   
-  // 1. Try process.env (Vite define) - This is the standard way in AI Studio
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIza")) {
-    console.log(`[GEMINI] Found valid key in process.env.GEMINI_API_KEY: ${process.env.GEMINI_API_KEY.substring(0, 4)}...`);
-    return process.env.GEMINI_API_KEY;
-  }
-  if (process.env.API_KEY && process.env.API_KEY.startsWith("AIza")) {
-    console.log(`[GEMINI] Found valid key in process.env.API_KEY: ${process.env.API_KEY.substring(0, 4)}...`);
-    return process.env.API_KEY;
-  }
+  console.log("[GEMINI] Starting robust key discovery...");
+  
+  const sources = [
+    { name: "process.env.API_KEY", val: process.env.API_KEY },
+    { name: "process.env.GEMINI_API_KEY", val: process.env.GEMINI_API_KEY },
+    { name: "window.__GEMINI_API_KEY__", val: (window as any).__GEMINI_API_KEY__ },
+    { name: "window.GEMINI_API_KEY", val: (window as any).GEMINI_API_KEY },
+    { name: "import.meta.env.VITE_GEMINI_API_KEY", val: (import.meta as any).env?.VITE_GEMINI_API_KEY }
+  ];
 
-  // 2. Try injected window variables (Fail-safe from server)
-  if (typeof window !== 'undefined') {
-    const win = window as any;
-    const k = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
-    if (k && k.startsWith("AIza")) {
-      console.log(`[GEMINI] Found valid key in window scope: ${k.substring(0, 4)}...`);
+  // First pass: look for something that looks like a real key
+  for (const source of sources) {
+    const k = source.val;
+    if (k && typeof k === 'string' && k.length > 20 && k.startsWith("AIza")) {
+      console.log(`[GEMINI] Found valid-looking key in ${source.name}`);
+      cachedKey = k;
       return k;
     }
   }
 
-  // 3. Try Vite's import.meta.env
-  const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  if (viteKey && viteKey.startsWith("AIza")) {
-    console.log(`[GEMINI] Found valid key in import.meta.env: ${viteKey.substring(0, 4)}...`);
-    return viteKey;
-  }
-
-  // 4. Fetch from backend
+  // Second pass: try dynamic fetch from server with cache buster
   try {
-    const response = await fetch('/api/config');
+    console.log("[GEMINI] Attempting dynamic fetch from /api/config...");
+    const response = await fetch(`/api/config?t=${Date.now()}`);
     const data = await response.json();
-    if (data.apiKey && data.apiKey.startsWith("AIza")) {
-      console.log(`[GEMINI] Found valid key in /api/config: ${data.apiKey.substring(0, 4)}...`);
+    if (data.apiKey && data.apiKey.length > 20) {
+      console.log(`[GEMINI] Found key via dynamic fetch: ${data.apiKey.substring(0, 4)}...`);
+      cachedKey = data.apiKey;
       return data.apiKey;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("[GEMINI] Dynamic fetch failed");
+  }
 
-  throw new Error("API Key is missing. Please select a valid Gemini API Key in the AI Studio Settings (sidebar).");
+  // Third pass: use anything that is long enough
+  for (const source of sources) {
+    const k = source.val;
+    if (k && typeof k === 'string' && k.length > 10) {
+      console.log(`[GEMINI] Using fallback key from ${source.name} (length: ${k.length})`);
+      cachedKey = k;
+      return k;
+    }
+  }
+
+  throw new Error("API Key is missing. Please ensure API_KEY is set in Settings and refresh the page.");
 };
 
 async function getAI() {
@@ -58,7 +65,7 @@ async function getAI() {
 
 export async function checkAIStatus() {
   const key = await getApiKey();
-  const hasKey = !!key && key.startsWith("AIza");
+  const hasKey = !!key && key.length > 10;
   return { status: hasKey ? "online" : "offline", hasKey };
 }
 
