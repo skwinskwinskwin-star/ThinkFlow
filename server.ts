@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import fs from "fs";
-import { GoogleGenAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,44 +32,13 @@ async function startServer() {
     console.error("[SERVER] CRITICAL: No API key found!");
   }
 
-  // Initialize AI on server
-  const genAI = apiKey ? new GoogleGenAI(apiKey) : null;
-
   app.use(cors());
   app.use(express.json());
-
-  // AI PROXY ENDPOINT
-  app.post("/api/ai/generate", async (req, res) => {
-    if (!genAI) {
-      return res.status(500).json({ error: "AI not initialized on server (missing key)" });
-    }
-
-    try {
-      const { model, contents, config } = req.body;
-      const aiModel = genAI.getGenerativeModel({ 
-        model: model || "gemini-1.5-flash",
-        systemInstruction: config?.systemInstruction
-      });
-
-      const result = await aiModel.generateContent({
-        contents,
-        generationConfig: {
-          temperature: config?.temperature || 0.7,
-          responseMimeType: config?.responseMimeType || "text/plain"
-        }
-      });
-
-      const response = await result.response;
-      res.json({ text: response.text() });
-    } catch (error: any) {
-      console.error("[SERVER AI ERROR]", error);
-      res.status(500).json({ error: error.message || "Internal AI Error" });
-    }
-  });
 
   // CONFIG ENDPOINT
   app.get("/api/config", (req, res) => {
     res.json({ 
+      apiKey: apiKey,
       hasKey: !!apiKey,
       status: apiKey ? "ready" : "missing_key"
     });
@@ -84,7 +52,11 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa"
+      appType: "spa",
+      define: {
+        "process.env.GEMINI_API_KEY": JSON.stringify(apiKey),
+        "process.env.API_KEY": JSON.stringify(apiKey),
+      }
     });
     app.use(vite.middlewares);
   } else {
