@@ -3,19 +3,31 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize Gemini directly in the frontend as per system guidelines.
 // The API key is injected by Vite's define during build/dev.
+let aiInstance: any = null;
+
 const getApiKey = () => {
-  // We use direct references so Vite's 'define' can replace them as text
+  // Direct reference for Vite replacement
   const key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  // Ignore placeholders
+  if (key === "MY_GEMINI_API_KEY" || key.length < 10) return "";
   return key;
 };
 
-const ai = new GoogleGenAI({ 
-  apiKey: getApiKey()
-});
+function getAI() {
+  if (!aiInstance) {
+    const key = getApiKey();
+    if (!key) {
+      console.error("Gemini API Key is missing or invalid.");
+      return null;
+    }
+    aiInstance = new GoogleGenAI({ apiKey: key });
+  }
+  return aiInstance;
+}
 
 export async function checkAIStatus() {
   const key = getApiKey();
-  const hasKey = !!key && key.length > 5;
+  const hasKey = !!key && key.startsWith("AIza");
   return { status: hasKey ? "online" : "offline", hasKey };
 }
 
@@ -50,6 +62,9 @@ export async function askThinkFlowAI(
   history: Message[] = [],
   attachment?: { data: string; mimeType: string }
 ) {
+  const ai = getAI();
+  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
+
   const systemInstruction = PERSONA_PROMPTS[type](profile);
   
   const contents: any[] = history.map(m => ({
@@ -80,6 +95,9 @@ export async function askThinkFlowAI(
 }
 
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
+  const ai = getAI();
+  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
+
   const prompt = `
     Create a structured Knowledge Tree for: "${topic}".
     User: ${profile.age} years old, interests: ${profile.interests.join(', ')}.
@@ -111,6 +129,9 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
+  const ai = getAI();
+  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
+
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
     const response = await ai.models.generateContent({
