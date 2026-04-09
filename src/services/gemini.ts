@@ -2,13 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize Gemini directly in the frontend as per system guidelines.
-// The API key is injected by the platform into process.env.GEMINI_API_KEY.
+// The API key is injected by Vite's define during build/dev.
 const getApiKey = () => {
-  // Try multiple sources for the key
-  const key = (typeof process !== 'undefined' && process.env ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : null)
-    || (import.meta as any).env?.VITE_GEMINI_API_KEY 
-    || (import.meta as any).env?.VITE_API_KEY
-    || "";
+  // We use direct references so Vite's 'define' can replace them as text
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
   return key;
 };
 

@@ -14,15 +14,20 @@ async function startServer() {
 
   // DYNAMIC ENV GENERATION
   // This ensures Vite always sees the API keys from the platform secrets
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  // We look for keys starting with 'AIza' to avoid placeholders like 'MY_GEMINI_API_KEY'
+  const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY];
+  const apiKey = keys.find(k => k && k.startsWith('AIza')) || "";
+  
   if (apiKey) {
     const envContent = `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`;
     try {
       fs.writeFileSync(path.join(process.cwd(), '.env'), envContent);
-      console.log(`[SERVER] Dynamic .env generated with key (length: ${apiKey.length})`);
+      console.log(`[SERVER] Dynamic .env generated with real key (length: ${apiKey.length})`);
     } catch (e) {
       console.error("[SERVER] Failed to write .env file", e);
     }
+  } else {
+    console.warn("[SERVER] No real API key (starting with AIza) found in environment!");
   }
 
   console.log(`[SERVER] Starting ThinkFlow AI Server...`);
