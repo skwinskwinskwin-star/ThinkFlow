@@ -77,7 +77,7 @@ export async function askThinkFlowAI(
   history: Message[] = [],
   attachment?: { data: string; mimeType: string }
 ) {
-  const ai = getAI();
+  const ai = await getAI();
   if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
 
   const systemInstruction = PERSONA_PROMPTS[type](profile);
@@ -110,7 +110,7 @@ export async function askThinkFlowAI(
 }
 
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
-  const ai = getAI();
+  const ai = await getAI();
   if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
 
   const prompt = `
@@ -144,7 +144,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
-  const ai = getAI();
+  const ai = await getAI();
   if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
 
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
