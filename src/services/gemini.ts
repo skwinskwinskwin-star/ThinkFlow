@@ -2,28 +2,35 @@ import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize Gemini directly in the frontend as per system guidelines.
-// The API key is injected by Vite's define during build/dev.
 let aiInstance: any = null;
+let cachedKey: string | null = null;
 
-const getApiKey = () => {
-  // Direct reference for Vite replacement
-  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-  
-  // Safe debug logging
-  if (key) {
-    console.log(`[GEMINI] Key detected: ${key.substring(0, 4)}... (length: ${key.length})`);
-  } else {
-    console.warn("[GEMINI] No API key detected in process.env");
+const getApiKey = async () => {
+  // 1. Try process.env (Vite define)
+  let key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  if (key && key.startsWith("AIza") && key !== "MY_GEMINI_API_KEY") return key;
+
+  // 2. Try cached key
+  if (cachedKey) return cachedKey;
+
+  // 3. Fetch from backend as a fallback (The most reliable way)
+  try {
+    const response = await fetch('/api/config');
+    const data = await response.json();
+    if (data.apiKey && data.apiKey.startsWith("AIza")) {
+      cachedKey = data.apiKey;
+      return data.apiKey;
+    }
+  } catch (e) {
+    console.error("[GEMINI] Failed to fetch config from backend", e);
   }
 
-  // Ignore placeholders
-  if (key === "MY_GEMINI_API_KEY" || key.length < 10) return "";
-  return key;
+  return "";
 };
 
-function getAI() {
+async function getAI() {
   if (!aiInstance) {
-    const key = getApiKey();
+    const key = await getApiKey();
     if (!key) {
       console.error("Gemini API Key is missing or invalid.");
       return null;
@@ -34,7 +41,7 @@ function getAI() {
 }
 
 export async function checkAIStatus() {
-  const key = getApiKey();
+  const key = await getApiKey();
   const hasKey = !!key && key.startsWith("AIza");
   return { status: hasKey ? "online" : "offline", hasKey };
 }

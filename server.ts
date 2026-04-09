@@ -37,6 +37,17 @@ async function startServer() {
   app.use(express.json());
 
   // API ROUTES
+  app.get("/api/config", (req, res) => {
+    // We look for keys starting with 'AIza' to avoid placeholders
+    const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY];
+    const apiKey = keys.find(k => k && k.startsWith('AIza')) || "";
+    
+    res.json({ 
+      apiKey: apiKey,
+      hasKey: !!apiKey
+    });
+  });
+
   app.get("/api/health", (req, res) => {
     res.json({ 
       status: "online", 
