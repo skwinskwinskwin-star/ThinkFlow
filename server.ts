@@ -13,14 +13,17 @@ async function startServer() {
   const PORT = 3000;
 
   // DYNAMIC ENV GENERATION & KEY DISCOVERY
-  const keys = {
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-    API_KEY: process.env.API_KEY,
-    AI_KEY: process.env.AI_KEY,
-    VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY
+  const getApiKeyFromEnv = () => {
+    const keys = {
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      API_KEY: process.env.API_KEY,
+      AI_KEY: process.env.AI_KEY,
+      VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY
+    };
+    return Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
   };
-  
-  const apiKey = Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
+
+  let apiKey = getApiKeyFromEnv();
   
   if (apiKey) {
     console.log(`[SERVER] API key detected (starts with ${apiKey.substring(0, 4)}...)`);
@@ -29,18 +32,41 @@ async function startServer() {
       fs.writeFileSync(path.join(process.cwd(), '.env'), `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`);
     } catch (e) {}
   } else {
-    console.error("[SERVER] CRITICAL: No API key found!");
+    console.error("[SERVER] CRITICAL: No API key found in environment variables!");
   }
 
   app.use(cors());
   app.use(express.json());
 
-  // CONFIG ENDPOINT
+  // INJECT KEY INTO HTML (FAIL-SAFE)
+  app.use((req, res, next) => {
+    if (req.url === '/' || req.url === '/index.html') {
+      const originalSend = res.send;
+      res.send = function (body) {
+        if (typeof body === 'string') {
+          const currentKey = getApiKeyFromEnv() || apiKey;
+          if (currentKey) {
+            body = body.replace(
+              '<head>',
+              `<head><script>window.GEMINI_API_KEY = ${JSON.stringify(currentKey)};</script>`
+            );
+          }
+        }
+        return originalSend.call(this, body);
+      };
+    }
+    next();
+  });
+
+  // API ROUTES
   app.get("/api/config", (req, res) => {
+    // We look for keys starting with 'AIza' to avoid placeholders
+    const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY, process.env.VITE_GEMINI_API_KEY];
+    const currentKey = keys.find(k => k && k.startsWith('AIza')) || apiKey || "";
+    
     res.json({ 
-      apiKey: apiKey,
-      hasKey: !!apiKey,
-      status: apiKey ? "ready" : "missing_key"
+      apiKey: currentKey,
+      hasKey: !!currentKey
     });
   });
 

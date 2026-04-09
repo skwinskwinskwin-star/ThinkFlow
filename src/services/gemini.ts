@@ -6,17 +6,26 @@ let aiInstance: any = null;
 let cachedKey: string | null = null;
 
 const getApiKey = async () => {
-  // 1. Try process.env (Vite define)
+  // 1. Try injected window variable (The most reliable fail-safe)
+  if (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) {
+    console.log("[GEMINI] Using key from window.GEMINI_API_KEY");
+    return (window as any).GEMINI_API_KEY;
+  }
+
+  // 2. Try process.env (Vite define)
   let key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
   if (key && key.startsWith("AIza") && key !== "MY_GEMINI_API_KEY") {
     console.log("[GEMINI] Using key from process.env");
     return key;
   }
 
-  // 2. Try cached key
-  if (cachedKey) return cachedKey;
+  // 3. Try cached key
+  if (cachedKey) {
+    console.log("[GEMINI] Using cached key");
+    return cachedKey;
+  }
 
-  // 3. Fetch from backend as a fallback (The most reliable way)
+  // 4. Fetch from backend as a fallback
   try {
     console.log("[GEMINI] Fetching key from /api/config...");
     const response = await fetch('/api/config');
@@ -30,6 +39,7 @@ const getApiKey = async () => {
     console.error("[GEMINI] Failed to fetch config from backend", e);
   }
 
+  console.error("[GEMINI] No valid API key found!");
   return "";
 };
 
