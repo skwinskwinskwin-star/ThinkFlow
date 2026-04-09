@@ -2,10 +2,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-
-console.log('[DEBUG] process.env.GEMINI_API_KEY length:', process.env.GEMINI_API_KEY?.length || 0);
-console.log('[DEBUG] process.env.API_KEY length:', process.env.API_KEY?.length || 0);
-
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';

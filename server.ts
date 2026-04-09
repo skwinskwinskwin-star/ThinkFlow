@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,7 +12,20 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  console.log(`[SERVER] Starting ThinkFlow AI Proxy Server...`);
+  // DYNAMIC ENV GENERATION
+  // This ensures Vite always sees the API keys from the platform secrets
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  if (apiKey) {
+    const envContent = `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`;
+    try {
+      fs.writeFileSync(path.join(process.cwd(), '.env'), envContent);
+      console.log(`[SERVER] Dynamic .env generated with key (length: ${apiKey.length})`);
+    } catch (e) {
+      console.error("[SERVER] Failed to write .env file", e);
+    }
+  }
+
+  console.log(`[SERVER] Starting ThinkFlow AI Server...`);
   console.log(`[SERVER] Environment Check: API_KEY=${!!process.env.API_KEY}, GEMINI_API_KEY=${!!process.env.GEMINI_API_KEY}`);
   
   app.use(cors());
