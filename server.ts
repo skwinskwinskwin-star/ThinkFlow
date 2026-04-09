@@ -28,14 +28,6 @@ async function startServer() {
 
     const foundKey = Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
     
-    // NUCLEAR FALLBACK: If we know the key from grep but env is empty
-    if (!foundKey) {
-      // This is the key we found via grep in the previous turn
-      const knownKey = "AIzaSyCyx92mbzkYC6quPF5EOhl0jw1EcnIa64o";
-      console.log(`[SERVER] Using nuclear fallback key: ${knownKey.substring(0, 4)}...`);
-      return knownKey;
-    }
-
     return foundKey;
   };
 
@@ -63,10 +55,9 @@ async function startServer() {
     }
   }
 
-  // FINAL FALLBACK & PHYSICAL FILE WRITING
+  // FINAL FALLBACK
   if (!apiKey) {
-    apiKey = "AIzaSyCyx92mbzkYC6quPF5EOhl0jw1EcnIa64o";
-    console.log("[SERVER] Using hardcoded emergency fallback key.");
+    console.log("[SERVER] No API key found in environment.");
   }
 
   // Write to public folder so Vite serves it as a real file

@@ -5,12 +5,20 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 let aiInstance: any = null;
 let cachedKey: string | null = null;
 
-const EMERGENCY_KEY = "AIzaSyCyx92mbzkYC6quPF5EOhl0jw1EcnIa64o";
-
 const getApiKey = async () => {
   console.log("[GEMINI] Starting key discovery...");
   
-  // 1. Try injected window variables
+  // 1. Try process.env (Vite define) - This is the standard way in AI Studio
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIza")) {
+    console.log(`[GEMINI] Found valid key in process.env.GEMINI_API_KEY: ${process.env.GEMINI_API_KEY.substring(0, 4)}...`);
+    return process.env.GEMINI_API_KEY;
+  }
+  if (process.env.API_KEY && process.env.API_KEY.startsWith("AIza")) {
+    console.log(`[GEMINI] Found valid key in process.env.API_KEY: ${process.env.API_KEY.substring(0, 4)}...`);
+    return process.env.API_KEY;
+  }
+
+  // 2. Try injected window variables (Fail-safe from server)
   if (typeof window !== 'undefined') {
     const win = window as any;
     const k = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
@@ -20,18 +28,11 @@ const getApiKey = async () => {
     }
   }
 
-  // 2. Try Vite's import.meta.env
+  // 3. Try Vite's import.meta.env
   const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (viteKey && viteKey.startsWith("AIza")) {
     console.log(`[GEMINI] Found valid key in import.meta.env: ${viteKey.substring(0, 4)}...`);
     return viteKey;
-  }
-
-  // 3. Try process.env (Vite define)
-  const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
-  if (envKey && envKey.startsWith("AIza") && envKey !== "MY_GEMINI_API_KEY") {
-    console.log(`[GEMINI] Found valid key in process.env: ${envKey.substring(0, 4)}...`);
-    return envKey;
   }
 
   // 4. Fetch from backend
@@ -44,9 +45,7 @@ const getApiKey = async () => {
     }
   } catch (e) {}
 
-  // 5. ABSOLUTE FINAL FALLBACK
-  console.warn("[GEMINI] Using emergency hardcoded key as last resort.");
-  return EMERGENCY_KEY;
+  throw new Error("API Key is missing. Please select a valid Gemini API Key in the AI Studio Settings (sidebar).");
 };
 
 async function getAI() {
