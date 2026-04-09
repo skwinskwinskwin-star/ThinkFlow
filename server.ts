@@ -38,29 +38,15 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  // INJECT KEY INTO HTML (FAIL-SAFE)
-  app.use((req, res, next) => {
-    if (req.url === '/' || req.url === '/index.html') {
-      const originalSend = res.send;
-      res.send = function (body) {
-        if (typeof body === 'string') {
-          const currentKey = getApiKeyFromEnv() || apiKey;
-          if (currentKey) {
-            body = body.replace(
-              '<head>',
-              `<head><script>window.GEMINI_API_KEY = ${JSON.stringify(currentKey)};</script>`
-            );
-          }
-        }
-        return originalSend.call(this, body);
-      };
-    }
-    next();
+  // 1. Synchronous Key Delivery (The most robust way)
+  app.get("/gemini-config.js", (req, res) => {
+    const currentKey = getApiKeyFromEnv() || apiKey;
+    res.setHeader("Content-Type", "application/javascript");
+    res.send(`window.GEMINI_API_KEY = ${JSON.stringify(currentKey)};`);
   });
 
-  // API ROUTES
+  // 2. API ROUTES
   app.get("/api/config", (req, res) => {
-    // We look for keys starting with 'AIza' to avoid placeholders
     const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY, process.env.VITE_GEMINI_API_KEY];
     const currentKey = keys.find(k => k && k.startsWith('AIza')) || apiKey || "";
     
@@ -88,7 +74,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

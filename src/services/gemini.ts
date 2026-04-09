@@ -19,20 +19,13 @@ const getApiKey = async () => {
     return key;
   }
 
-  // 3. Try cached key
-  if (cachedKey) {
-    console.log("[GEMINI] Using cached key");
-    return cachedKey;
-  }
-
-  // 4. Fetch from backend as a fallback
+  // 3. Fetch from backend as a fallback
   try {
     console.log("[GEMINI] Fetching key from /api/config...");
     const response = await fetch('/api/config');
     const data = await response.json();
     if (data.apiKey && data.apiKey.startsWith("AIza")) {
       console.log("[GEMINI] Using key from /api/config");
-      cachedKey = data.apiKey;
       return data.apiKey;
     }
   } catch (e) {
