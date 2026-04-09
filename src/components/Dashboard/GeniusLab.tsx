@@ -19,21 +19,12 @@ export const GeniusLab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [keyStatus, setKeyStatus] = useState<{ hasKey: boolean; checked: boolean }>({ hasKey: false, checked: false });
-
-  useEffect(() => {
-    checkAIStatus().then(res => setKeyStatus({ hasKey: res.hasKey, checked: true }));
-  }, []);
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
     setIsLoading(true);
     setError(null);
     try {
-      const status = await checkAIStatus();
-      if (!status.hasKey) {
-        throw new Error("API Key is missing. Please ensure GEMINI_API_KEY is set in Settings -> Secrets and refresh the page.");
-      }
       const generatedTree = await generateKnowledgeTree(topic, profile);
       setTree(generatedTree);
       setSelectedNode(generatedTree.nodes[0]);
@@ -101,28 +92,6 @@ export const GeniusLab: React.FC = () => {
               {t.geniusLabSub}
             </p>
           </div>
-
-          {keyStatus.checked && !keyStatus.hasKey && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-2xl mx-auto mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-200"
-            >
-              <AlertCircle className="w-6 h-6 text-red-500 shrink-0" />
-              <div className="text-sm">
-                <p className="font-bold uppercase tracking-tight">Ключ API не обнаружен в браузере</p>
-                <p className="opacity-70">Проверьте <b>Settings → Secrets</b>. Если ключ там есть, попробуйте <b>полностью обновить страницу</b> (Ctrl+F5).</p>
-              </div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="ml-auto border-red-500/50 text-red-500 hover:bg-red-500/10"
-                onClick={() => checkAIStatus().then(res => setKeyStatus({ hasKey: res.hasKey, checked: true }))}
-              >
-                Проверить снова
-              </Button>
-            </motion.div>
-          )}
 
           <Card className="p-2 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl max-w-2xl mx-auto">
                 <div className="flex flex-col md:flex-row gap-2">

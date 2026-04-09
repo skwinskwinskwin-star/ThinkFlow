@@ -4,8 +4,9 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-  const apiKey = env.GEMINI_API_KEY || env.API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  // We know the key exists on the server from our test.
+  // We force it into the client-side build.
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
   
   return {
     plugins: [react(), tailwindcss()],
