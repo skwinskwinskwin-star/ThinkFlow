@@ -3,14 +3,33 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize Gemini directly in the frontend as per system guidelines.
 // The API key is injected by the platform into process.env.GEMINI_API_KEY.
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || "" 
-});
+const getApiKey = () => {
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  return key;
+};
 
 export async function checkAIStatus() {
-  const hasKey = !!process.env.GEMINI_API_KEY;
+  const key = getApiKey();
+  const hasKey = !!key && key.length > 5;
+  
+  if (hasKey) {
+    console.log('[AI STATUS CHECK] Key detected. Length:', key.length);
+  } else {
+    console.warn('[AI STATUS CHECK] NO KEY DETECTED in process.env');
+  }
+  
   return { status: hasKey ? "online" : "offline", hasKey };
 }
+
+const getAI = () => {
+  const key = getApiKey();
+  if (!key) {
+    console.error("CRITICAL: Gemini API Key is missing!");
+  }
+  return new GoogleGenAI({ apiKey: key });
+};
+
+const ai = getAI();
 
 const PERSONA_PROMPTS = {
   teacher: (p: UserProfile) => `
