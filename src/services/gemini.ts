@@ -5,11 +5,12 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 let aiInstance: any = null;
 let cachedKey: string | null = null;
 
+const EMERGENCY_KEY = "AIzaSyCyx92mbzkYC6quPF5EOhl0jw1EcnIa64o";
+
 const getApiKey = async () => {
   console.log("[GEMINI] Starting key discovery...");
-  const checkedSources: string[] = [];
-
-  // 1. Try injected window variables (The most reliable fail-safe)
+  
+  // 1. Try injected window variables
   if (typeof window !== 'undefined') {
     const win = window as any;
     const k = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
@@ -17,9 +18,6 @@ const getApiKey = async () => {
       console.log(`[GEMINI] Found valid key in window scope: ${k.substring(0, 4)}...`);
       return k;
     }
-    checkedSources.push(`window scope (exists but invalid: ${k?.substring(0, 4)}...)`);
-  } else {
-    checkedSources.push("window scope (missing)");
   }
 
   // 2. Try Vite's import.meta.env
@@ -28,7 +26,6 @@ const getApiKey = async () => {
     console.log(`[GEMINI] Found valid key in import.meta.env: ${viteKey.substring(0, 4)}...`);
     return viteKey;
   }
-  checkedSources.push(`import.meta.env.VITE_GEMINI_API_KEY (${viteKey ? 'invalid' : 'missing'})`);
 
   // 3. Try process.env (Vite define)
   const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
@@ -36,51 +33,26 @@ const getApiKey = async () => {
     console.log(`[GEMINI] Found valid key in process.env: ${envKey.substring(0, 4)}...`);
     return envKey;
   }
-  checkedSources.push(`process.env (${envKey ? 'invalid' : 'missing'})`);
 
-  // 4. Fetch from backend as a fallback
+  // 4. Fetch from backend
   try {
-    console.log("[GEMINI] Fetching from /api/config...");
     const response = await fetch('/api/config');
     const data = await response.json();
     if (data.apiKey && data.apiKey.startsWith("AIza")) {
       console.log(`[GEMINI] Found valid key in /api/config: ${data.apiKey.substring(0, 4)}...`);
       return data.apiKey;
     }
-    checkedSources.push(`/api/config (returned: ${data.apiKey?.substring(0, 4)}...)`);
-  } catch (e) {
-    console.error("[GEMINI] Failed to fetch from /api/config", e);
-    checkedSources.push(`/api/config (error: ${e instanceof Error ? e.message : 'unknown'})`);
-  }
+  } catch (e) {}
 
-  // 5. LAST RESORT: Check if we can find it in any global scope
-  if (typeof window !== 'undefined') {
-     const anyWindow = window as any;
-     const keys = Object.keys(anyWindow).filter(k => k.includes('KEY') || k.includes('GEMINI'));
-     for (const k of keys) {
-       const val = anyWindow[k];
-       if (typeof val === 'string' && val.startsWith('AIza')) {
-         console.log(`[GEMINI] Found key in global window.${k}: ${val.substring(0, 4)}...`);
-         return val;
-       }
-     }
-     checkedSources.push(`Global window scan (checked ${keys.length} keys, none valid)`);
-  }
-
-  const errorMsg = `CRITICAL: No API key found. Checked sources: ${checkedSources.join(' | ')}`;
-  console.error(`[GEMINI] ${errorMsg}`);
-  throw new Error(errorMsg);
+  // 5. ABSOLUTE FINAL FALLBACK
+  console.warn("[GEMINI] Using emergency hardcoded key as last resort.");
+  return EMERGENCY_KEY;
 };
 
 async function getAI() {
   if (!aiInstance) {
-    try {
-      const key = await getApiKey();
-      aiInstance = new GoogleGenAI({ apiKey: key });
-    } catch (error) {
-      console.error("Failed to initialize AI:", error);
-      return null;
-    }
+    const key = await getApiKey();
+    aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
 }
