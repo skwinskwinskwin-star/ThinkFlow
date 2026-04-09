@@ -12,6 +12,9 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  console.log(`[SERVER] Starting ThinkFlow AI Proxy Server...`);
+  console.log(`[SERVER] Environment Check: API_KEY=${!!process.env.API_KEY}, GEMINI_API_KEY=${!!process.env.GEMINI_API_KEY}`);
+  
   app.use(cors());
   app.use(express.json());
 

@@ -8,57 +8,66 @@ export const GeniusBackground: React.FC = () => {
   const { geniusMode } = useAuth();
   const { theme } = useTheme();
 
-  if (!geniusMode) return <div className="fixed inset-0 bg-[var(--bg)] -z-10" />;
+  if (!geniusMode) return <div className="fixed inset-0 bg-[var(--bg)] z-0" />;
   
   const isDark = theme === 'dark';
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden bg-[var(--background)] transition-colors duration-500">
+    <div className="fixed inset-0 z-0 overflow-hidden bg-[var(--bg)] transition-colors duration-500">
       {/* Floating 3D-like Orbs */}
       <motion.div
         animate={{
-          x: [0, 100, -100, 0],
-          y: [0, -100, 100, 0],
-          scale: [1, 1.2, 0.8, 1],
+          x: [0, 150, -150, 0],
+          y: [0, -150, 150, 0],
+          scale: [1, 1.3, 0.7, 1],
           rotate: [0, 180, 360],
         }}
         transition={{
-          duration: 20,
+          duration: 30,
           repeat: Infinity,
           ease: "linear",
         }}
-        className={`absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[150px] ${
-          isDark ? 'bg-indigo-600/10' : 'bg-indigo-400/15'
+        className={`absolute top-[-10%] left-[-10%] w-[800px] h-[800px] rounded-full blur-[120px] ${
+          isDark ? 'bg-indigo-600/20' : 'bg-indigo-400/30'
         }`}
       />
       
       <motion.div
         animate={{
-          x: [0, -150, 150, 0],
-          y: [0, 150, -150, 0],
-          scale: [1, 0.7, 1.3, 1],
+          x: [0, -200, 200, 0],
+          y: [0, 200, -200, 0],
+          scale: [1, 0.6, 1.4, 1],
         }}
         transition={{
-          duration: 25,
+          duration: 35,
           repeat: Infinity,
           ease: "linear",
         }}
-        className={`absolute bottom-1/4 right-1/4 w-[800px] h-[800px] rounded-full blur-[200px] ${
-          isDark ? 'bg-purple-600/10' : 'bg-purple-400/15'
+        className={`absolute bottom-[-10%] right-[-10%] w-[1000px] h-[1000px] rounded-full blur-[150px] ${
+          isDark ? 'bg-purple-600/20' : 'bg-purple-400/30'
         }`}
       />
 
-      {/* Cyber Grid with 3D Perspective */}
+      {/* Cyber Grid with 3D Perspective - ENHANCED */}
       <div 
-        className={`absolute inset-0 ${isDark ? 'opacity-[0.05]' : 'opacity-[0.1]'}`}
+        className="absolute inset-0"
         style={{
-          backgroundImage: `linear-gradient(var(--text) 1px, transparent 1px), linear-gradient(90deg, var(--text) 1px, transparent 1px)`,
-          backgroundSize: '80px 80px',
-          transform: 'perspective(1000px) rotateX(65deg) translateY(-200px)',
-          transformOrigin: 'top',
-          maskImage: 'linear-gradient(to bottom, black, transparent)'
+          perspective: '1000px',
+          overflow: 'hidden'
         }}
-      />
+      >
+        <div 
+          className={`absolute inset-0 ${isDark ? 'opacity-[0.15]' : 'opacity-[0.25]'}`}
+          style={{
+            backgroundImage: `linear-gradient(var(--text) 1px, transparent 1px), linear-gradient(90deg, var(--text) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+            transform: 'rotateX(60deg) translateY(-100px) translateZ(0)',
+            transformOrigin: 'top',
+            height: '200%',
+            maskImage: 'linear-gradient(to bottom, black 20%, transparent 80%)'
+          }}
+        />
+      </div>
 
       {/* Scanning Line */}
       <motion.div 

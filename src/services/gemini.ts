@@ -40,8 +40,11 @@ async function callAIProxy(payload: any) {
 export async function checkAIStatus() {
   try {
     const res = await fetch('/api/health');
-    return await res.json();
+    const data = await res.json();
+    console.log('[AI HEALTH CHECK]', data);
+    return data;
   } catch (e) {
+    console.error('[AI HEALTH CHECK FAILED]', e);
     return { status: 'offline', hasKey: false };
   }
 }

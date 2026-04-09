@@ -71,16 +71,24 @@ export const GeniusLab: React.FC = () => {
 
   if (!tree) {
     return (
-      <div className="max-w-4xl mx-auto min-h-full flex flex-col items-center py-12 md:py-20 p-6">
+      <div className="max-w-4xl mx-auto flex flex-col items-center pt-20 md:pt-32 pb-12 md:pb-20 p-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full space-y-12 text-center"
         >
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
-              <Zap className="w-4 h-4" />
-              {t.nextGenAI}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                <Zap className="w-4 h-4" />
+                {t.nextGenAI}
+              </div>
+              {profile?.geniusMode && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                  <Sparkles className="w-4 h-4" />
+                  GENIUS MODE ACTIVE
+                </div>
+              )}
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white">
               Genius <span className="text-indigo-500">Lab</span>
