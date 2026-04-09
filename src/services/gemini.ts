@@ -12,14 +12,21 @@ const getApiKey = async () => {
     return (window as any).GEMINI_API_KEY;
   }
 
-  // 2. Try process.env (Vite define)
-  let key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-  if (key && key.startsWith("AIza") && key !== "MY_GEMINI_API_KEY") {
-    console.log("[GEMINI] Using key from process.env");
-    return key;
+  // 2. Try Vite's import.meta.env (for Vercel/Static builds)
+  const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  if (viteKey && viteKey.startsWith("AIza")) {
+    console.log("[GEMINI] Using key from import.meta.env");
+    return viteKey;
   }
 
-  // 3. Fetch from backend as a fallback
+  // 3. Try process.env (Vite define)
+  const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (envKey && envKey.startsWith("AIza") && envKey !== "MY_GEMINI_API_KEY") {
+    console.log("[GEMINI] Using key from process.env");
+    return envKey;
+  }
+
+  // 4. Fetch from backend as a fallback
   try {
     console.log("[GEMINI] Fetching key from /api/config...");
     const response = await fetch('/api/config');

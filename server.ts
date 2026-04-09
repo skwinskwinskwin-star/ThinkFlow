@@ -20,19 +20,30 @@ async function startServer() {
       AI_KEY: process.env.AI_KEY,
       VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY
     };
+    
+    // Log keys for debugging (masked)
+    Object.entries(keys).forEach(([k, v]) => {
+      if (v) console.log(`[SERVER] Found ${k}: ${v.substring(0, 4)}...`);
+    });
+
     return Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
   };
 
   let apiKey = getApiKeyFromEnv();
   
-  if (apiKey) {
-    console.log(`[SERVER] API key detected (starts with ${apiKey.substring(0, 4)}...)`);
-    // Write to .env for Vite as a backup
+  // Try to read from .env if env vars are missing
+  if (!apiKey) {
     try {
-      fs.writeFileSync(path.join(process.cwd(), '.env'), `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`);
+      const envPath = path.join(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const match = envContent.match(/(?:API_KEY|GEMINI_API_KEY|VITE_GEMINI_API_KEY)=(AIza[^\s\n]+)/);
+        if (match) {
+          apiKey = match[1];
+          console.log(`[SERVER] Found key in .env file: ${apiKey.substring(0, 4)}...`);
+        }
+      }
     } catch (e) {}
-  } else {
-    console.error("[SERVER] CRITICAL: No API key found in environment variables!");
   }
 
   app.use(cors());
@@ -41,8 +52,10 @@ async function startServer() {
   // 1. Synchronous Key Delivery (The most robust way)
   app.get("/gemini-config.js", (req, res) => {
     const currentKey = getApiKeyFromEnv() || apiKey;
+    console.log(`[SERVER] Serving /gemini-config.js (Key present: ${!!currentKey})`);
     res.setHeader("Content-Type", "application/javascript");
-    res.send(`window.GEMINI_API_KEY = ${JSON.stringify(currentKey)};`);
+    res.setHeader("Cache-Control", "no-store");
+    res.send(`window.GEMINI_API_KEY = ${JSON.stringify(currentKey)};\nconsole.log("[GEMINI-CONFIG] Key injected into window");`);
   });
 
   // 2. API ROUTES
