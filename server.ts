@@ -13,21 +13,27 @@ async function startServer() {
   const PORT = 3000;
 
   // DYNAMIC ENV GENERATION
-  // This ensures Vite always sees the API keys from the platform secrets
-  // We look for keys starting with 'AIza' to avoid placeholders like 'MY_GEMINI_API_KEY'
-  const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY];
-  const apiKey = keys.find(k => k && k.startsWith('AIza')) || "";
+  const keys = {
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    API_KEY: process.env.API_KEY,
+    AI_KEY: process.env.AI_KEY,
+    VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY
+  };
+  
+  console.log("[SERVER] Environment Keys Check:", Object.keys(keys).map(k => `${k}: ${keys[k] ? 'EXISTS' : 'MISSING'}`));
+  
+  const apiKey = Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
   
   if (apiKey) {
+    console.log(`[SERVER] Real API key found (starts with ${apiKey.substring(0, 4)}...)`);
     const envContent = `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`;
     try {
       fs.writeFileSync(path.join(process.cwd(), '.env'), envContent);
-      console.log(`[SERVER] Dynamic .env generated with real key (length: ${apiKey.length})`);
     } catch (e) {
       console.error("[SERVER] Failed to write .env file", e);
     }
   } else {
-    console.warn("[SERVER] No real API key (starting with AIza) found in environment!");
+    console.error("[SERVER] CRITICAL: No real API key found in environment variables!");
   }
 
   console.log(`[SERVER] Starting ThinkFlow AI Server...`);

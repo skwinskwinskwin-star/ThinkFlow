@@ -6,25 +6,45 @@ let aiInstance: any = null;
 let cachedKey: string | null = null;
 
 const getApiKey = async () => {
+  console.log("[GEMINI] Starting API key retrieval...");
+  
   // 1. Try process.env (Vite define)
   let key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  console.log("[GEMINI] Step 1 (process.env):", key ? `FOUND (${key.substring(0, 4)}...)` : "MISSING");
   if (key && key.startsWith("AIza") && key !== "MY_GEMINI_API_KEY") return key;
 
   // 2. Try cached key
-  if (cachedKey) return cachedKey;
+  if (cachedKey) {
+    console.log("[GEMINI] Step 2 (cache): FOUND");
+    return cachedKey;
+  }
 
-  // 3. Fetch from backend as a fallback (The most reliable way)
+  // 3. Fetch from backend
+  console.log("[GEMINI] Step 3: Fetching from /api/config...");
   try {
     const response = await fetch('/api/config');
     const data = await response.json();
+    console.log("[GEMINI] Backend response:", data.hasKey ? "HAS KEY" : "NO KEY");
     if (data.apiKey && data.apiKey.startsWith("AIza")) {
       cachedKey = data.apiKey;
       return data.apiKey;
     }
   } catch (e) {
-    console.error("[GEMINI] Failed to fetch config from backend", e);
+    console.error("[GEMINI] Backend fetch failed:", e);
   }
 
+  // 4. Last resort: try to find any key in the environment that looks real
+  console.log("[GEMINI] Step 4: Last resort check...");
+  // This is a bit of a hack but we're desperate
+  for (const k in process.env) {
+    const val = (process.env as any)[k];
+    if (val && typeof val === 'string' && val.startsWith('AIza')) {
+      console.log(`[GEMINI] Found key in process.env.${k}`);
+      return val;
+    }
+  }
+
+  console.error("[GEMINI] All retrieval steps failed.");
   return "";
 };
 
