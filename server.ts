@@ -23,7 +23,7 @@ async function startServer() {
     
     // Log keys for debugging (masked)
     Object.entries(keys).forEach(([k, v]) => {
-      if (v) console.log(`[SERVER] Found ${k}: ${v.substring(0, 4)}...`);
+      if (v) console.log(`[SERVER] Found in process.env: ${k}=${v.substring(0, 4)}...`);
     });
 
     return Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
@@ -31,19 +31,30 @@ async function startServer() {
 
   let apiKey = getApiKeyFromEnv();
   
-  // Try to read from .env if env vars are missing
+  // AGGRESSIVE FILE SEARCH
   if (!apiKey) {
-    try {
-      const envPath = path.join(process.cwd(), '.env');
-      if (fs.existsSync(envPath)) {
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        const match = envContent.match(/(?:API_KEY|GEMINI_API_KEY|VITE_GEMINI_API_KEY)=(AIza[^\s\n]+)/);
-        if (match) {
-          apiKey = match[1];
-          console.log(`[SERVER] Found key in .env file: ${apiKey.substring(0, 4)}...`);
+    console.log("[SERVER] Key not found in process.env, searching files...");
+    const filesToSearch = ['.env', 'firebase-applet-config.json', 'firebase-blueprint.json'];
+    for (const file of filesToSearch) {
+      try {
+        const filePath = path.join(process.cwd(), file);
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf8');
+          const match = content.match(/AIza[a-zA-Z0-9_-]{35}/);
+          if (match) {
+            apiKey = match[0];
+            console.log(`[SERVER] Found key in ${file}: ${apiKey.substring(0, 4)}...`);
+            break;
+          }
         }
+      } catch (e) {
+        console.error(`[SERVER] Error reading ${file}:`, e);
       }
-    } catch (e) {}
+    }
+  }
+
+  if (!apiKey) {
+    console.error("[SERVER] CRITICAL: API KEY STILL NOT FOUND!");
   }
 
   app.use(cors());

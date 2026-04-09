@@ -6,40 +6,43 @@ let aiInstance: any = null;
 let cachedKey: string | null = null;
 
 const getApiKey = async () => {
+  console.log("[GEMINI] Starting key discovery...");
+
   // 1. Try injected window variable (The most reliable fail-safe)
   if (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) {
-    console.log("[GEMINI] Using key from window.GEMINI_API_KEY");
-    return (window as any).GEMINI_API_KEY;
+    const k = (window as any).GEMINI_API_KEY;
+    console.log(`[GEMINI] Found in window.GEMINI_API_KEY: ${k.substring(0, 4)}...`);
+    return k;
   }
 
-  // 2. Try Vite's import.meta.env (for Vercel/Static builds)
+  // 2. Try Vite's import.meta.env
   const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (viteKey && viteKey.startsWith("AIza")) {
-    console.log("[GEMINI] Using key from import.meta.env");
+    console.log(`[GEMINI] Found in import.meta.env: ${viteKey.substring(0, 4)}...`);
     return viteKey;
   }
 
   // 3. Try process.env (Vite define)
   const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
   if (envKey && envKey.startsWith("AIza") && envKey !== "MY_GEMINI_API_KEY") {
-    console.log("[GEMINI] Using key from process.env");
+    console.log(`[GEMINI] Found in process.env: ${envKey.substring(0, 4)}...`);
     return envKey;
   }
 
   // 4. Fetch from backend as a fallback
   try {
-    console.log("[GEMINI] Fetching key from /api/config...");
+    console.log("[GEMINI] Fetching from /api/config...");
     const response = await fetch('/api/config');
     const data = await response.json();
     if (data.apiKey && data.apiKey.startsWith("AIza")) {
-      console.log("[GEMINI] Using key from /api/config");
+      console.log(`[GEMINI] Found in /api/config: ${data.apiKey.substring(0, 4)}...`);
       return data.apiKey;
     }
   } catch (e) {
-    console.error("[GEMINI] Failed to fetch config from backend", e);
+    console.error("[GEMINI] Failed to fetch from /api/config", e);
   }
 
-  console.error("[GEMINI] No valid API key found!");
+  console.error("[GEMINI] CRITICAL: NO API KEY FOUND IN ANY SOURCE!");
   return "";
 };
 
