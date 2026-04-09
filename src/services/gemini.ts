@@ -3,12 +3,22 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize Gemini directly in the frontend as per system guidelines.
 // The API key is injected by the platform into process.env.GEMINI_API_KEY.
+const getApiKey = () => {
+  // Try multiple sources for the key
+  const key = (typeof process !== 'undefined' && process.env ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : null)
+    || (import.meta as any).env?.VITE_GEMINI_API_KEY 
+    || (import.meta as any).env?.VITE_API_KEY
+    || "";
+  return key;
+};
+
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || "" 
+  apiKey: getApiKey()
 });
 
 export async function checkAIStatus() {
-  const hasKey = !!(process.env.GEMINI_API_KEY || process.env.API_KEY);
+  const key = getApiKey();
+  const hasKey = !!key && key.length > 5;
   return { status: hasKey ? "online" : "offline", hasKey };
 }
 
