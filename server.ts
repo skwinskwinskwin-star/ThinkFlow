@@ -73,7 +73,14 @@ async function startServer() {
   try {
     const publicDir = path.join(process.cwd(), 'public');
     if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
-    const configContent = `window.GEMINI_API_KEY = "${apiKey}";\nconsole.log("[PUBLIC-CONFIG] Key loaded from public/gemini-config.js");`;
+    const configContent = `
+      (function() {
+        var key = "${apiKey}";
+        window.__GEMINI_API_KEY__ = key;
+        window.GEMINI_API_KEY = key; // Fallback
+        console.log("[PUBLIC-CONFIG] Key loaded from public/gemini-config.js");
+      })();
+    `;
     fs.writeFileSync(path.join(publicDir, 'gemini-config.js'), configContent);
     console.log("[SERVER] Successfully wrote key to public/gemini-config.js");
   } catch (e) {
@@ -92,9 +99,13 @@ async function startServer() {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     res.send(`
-      window.GEMINI_API_KEY = ${JSON.stringify(currentKey)};
-      console.log("[GEMINI-CONFIG] Key injected into window. Key present: " + !!window.GEMINI_API_KEY);
-      if (!window.GEMINI_API_KEY) console.error("[GEMINI-CONFIG] CRITICAL: Key is empty!");
+      (function() {
+        var key = ${JSON.stringify(currentKey)};
+        window.__GEMINI_API_KEY__ = key;
+        window.GEMINI_API_KEY = key; // Fallback
+        console.log("[GEMINI-CONFIG] Key injected into window.__GEMINI_API_KEY__");
+        if (!key) console.error("[GEMINI-CONFIG] CRITICAL: Key is empty!");
+      })();
     `);
   });
 

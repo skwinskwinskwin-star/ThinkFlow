@@ -9,16 +9,17 @@ const getApiKey = async () => {
   console.log("[GEMINI] Starting key discovery...");
   const checkedSources: string[] = [];
 
-  // 1. Try injected window variable (The most reliable fail-safe)
-  if (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) {
-    const k = (window as any).GEMINI_API_KEY;
+  // 1. Try injected window variables (The most reliable fail-safe)
+  if (typeof window !== 'undefined') {
+    const win = window as any;
+    const k = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
     if (k && k.startsWith("AIza")) {
-      console.log(`[GEMINI] Found valid key in window.GEMINI_API_KEY: ${k.substring(0, 4)}...`);
+      console.log(`[GEMINI] Found valid key in window scope: ${k.substring(0, 4)}...`);
       return k;
     }
-    checkedSources.push(`window.GEMINI_API_KEY (exists but invalid: ${k?.substring(0, 4)}...)`);
+    checkedSources.push(`window scope (exists but invalid: ${k?.substring(0, 4)}...)`);
   } else {
-    checkedSources.push("window.GEMINI_API_KEY (missing)");
+    checkedSources.push("window scope (missing)");
   }
 
   // 2. Try Vite's import.meta.env
