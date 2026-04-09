@@ -1,64 +1,16 @@
-import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Initialize Gemini directly in the frontend as per system guidelines.
-let aiInstance: any = null;
-let cachedKey: string | null = null;
-
-const getApiKey = async () => {
-  // 1. Try injected window variable (The most reliable fail-safe)
-  if (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) {
-    console.log("[GEMINI] Using key from window.GEMINI_API_KEY");
-    return (window as any).GEMINI_API_KEY;
-  }
-
-  // 2. Try process.env (Vite define)
-  let key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-  if (key && key.startsWith("AIza") && key !== "MY_GEMINI_API_KEY") {
-    console.log("[GEMINI] Using key from process.env");
-    return key;
-  }
-
-  // 3. Try cached key
-  if (cachedKey) {
-    console.log("[GEMINI] Using cached key");
-    return cachedKey;
-  }
-
-  // 4. Fetch from backend as a fallback
-  try {
-    console.log("[GEMINI] Fetching key from /api/config...");
-    const response = await fetch('/api/config');
-    const data = await response.json();
-    if (data.apiKey && data.apiKey.startsWith("AIza")) {
-      console.log("[GEMINI] Using key from /api/config");
-      cachedKey = data.apiKey;
-      return data.apiKey;
-    }
-  } catch (e) {
-    console.error("[GEMINI] Failed to fetch config from backend", e);
-  }
-
-  console.error("[GEMINI] No valid API key found!");
-  return "";
-};
-
-async function getAI() {
-  if (!aiInstance) {
-    const key = await getApiKey();
-    if (!key) {
-      console.error("Gemini API Key is missing or invalid.");
-      return null;
-    }
-    aiInstance = new GoogleGenAI({ apiKey: key });
-  }
-  return aiInstance;
-}
+// This service now proxies all requests to the backend server
+// to ensure API key security and reliability.
 
 export async function checkAIStatus() {
-  const key = await getApiKey();
-  const hasKey = !!key && key.startsWith("AIza");
-  return { status: hasKey ? "online" : "offline", hasKey };
+  try {
+    const response = await fetch('/api/config');
+    const data = await response.json();
+    return { status: data.status === 'ready' ? "online" : "offline", hasKey: data.hasKey };
+  } catch (e) {
+    return { status: "offline", hasKey: false };
+  }
 }
 
 const PERSONA_PROMPTS = {
@@ -85,6 +37,22 @@ const PERSONA_PROMPTS = {
   `
 };
 
+async function callAIProxy(model: string, contents: any[], config?: any) {
+  const response = await fetch('/api/ai/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, contents, config })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || `Server Error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text;
+}
+
 export async function askThinkFlowAI(
   type: AIModelType,
   prompt: string,
@@ -92,9 +60,6 @@ export async function askThinkFlowAI(
   history: Message[] = [],
   attachment?: { data: string; mimeType: string }
 ) {
-  const ai = await getAI();
-  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
-
   const systemInstruction = PERSONA_PROMPTS[type](profile);
   
   const contents: any[] = history.map(m => ({
@@ -108,26 +73,13 @@ export async function askThinkFlowAI(
   }
   contents.push({ role: 'user', parts: currentParts });
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents,
-      config: { 
-        temperature: 0.7,
-        systemInstruction
-      }
-    });
-    return response.text || "No response";
-  } catch (error: any) {
-    console.error("AI Error:", error);
-    throw error;
-  }
+  return await callAIProxy("gemini-3-flash-preview", contents, {
+    temperature: 0.7,
+    systemInstruction
+  });
 }
 
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
-  const ai = await getAI();
-  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
-
   const prompt = `
     Create a structured Knowledge Tree for: "${topic}".
     User: ${profile.age} years old, interests: ${profile.interests.join(', ')}.
@@ -139,42 +91,19 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
     }
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { 
-        temperature: 0.8, 
-        responseMimeType: "application/json" 
-      }
-    });
+  const text = await callAIProxy("gemini-3-flash-preview", [{ role: 'user', parts: [{ text: prompt }] }], {
+    temperature: 0.8,
+    responseMimeType: "application/json"
+  });
 
-    const text = response.text || "";
-    const cleanJson = text.replace(/```json\n?|```/g, '').trim();
-    return JSON.parse(cleanJson) as KnowledgeTree;
-  } catch (error: any) {
-    console.error("Knowledge Tree Error:", error);
-    throw error;
-  }
+  const cleanJson = text.replace(/```json\n?|```/g, '').trim();
+  return JSON.parse(cleanJson) as KnowledgeTree;
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
-  const ai = await getAI();
-  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
-
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { 
-        temperature: 0.8,
-        systemInstruction: "Expert educator."
-      }
-    });
-    return response.text || "Error";
-  } catch (error: any) {
-    console.error("Explanation Error:", error);
-    throw error;
-  }
+  return await callAIProxy("gemini-3-flash-preview", [{ role: 'user', parts: [{ text: prompt }] }], {
+    temperature: 0.8,
+    systemInstruction: "Expert educator."
+  });
 }

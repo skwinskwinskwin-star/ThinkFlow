@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import fs from "fs";
+import { GoogleGenAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +13,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // DYNAMIC ENV GENERATION
+  // DYNAMIC ENV GENERATION & KEY DISCOVERY
   const keys = {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     API_KEY: process.env.API_KEY,
@@ -20,80 +21,71 @@ async function startServer() {
     VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY
   };
   
-  console.log("[SERVER] Environment Keys Check:", Object.keys(keys).map(k => `${k}: ${keys[k] ? 'EXISTS' : 'MISSING'}`));
-  
   const apiKey = Object.values(keys).find(k => k && k.startsWith('AIza')) || "";
   
   if (apiKey) {
-    console.log(`[SERVER] Real API key found (starts with ${apiKey.substring(0, 4)}...)`);
-    const envContent = `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`;
+    console.log(`[SERVER] API key detected (starts with ${apiKey.substring(0, 4)}...)`);
+    // Write to .env for Vite as a backup
     try {
-      fs.writeFileSync(path.join(process.cwd(), '.env'), envContent);
-    } catch (e) {
-      console.error("[SERVER] Failed to write .env file", e);
-    }
+      fs.writeFileSync(path.join(process.cwd(), '.env'), `VITE_GEMINI_API_KEY=${apiKey}\nGEMINI_API_KEY=${apiKey}\nAPI_KEY=${apiKey}\n`);
+    } catch (e) {}
   } else {
-    console.error("[SERVER] CRITICAL: No real API key found in environment variables!");
+    console.error("[SERVER] CRITICAL: No API key found!");
   }
 
-  console.log(`[SERVER] Starting ThinkFlow AI Server...`);
-  
+  // Initialize AI on server
+  const genAI = apiKey ? new GoogleGenAI(apiKey) : null;
+
   app.use(cors());
   app.use(express.json());
 
-  // INJECT KEY INTO HTML (FAIL-SAFE)
-  app.use((req, res, next) => {
-    if (req.url === '/' || req.url === '/index.html') {
-      const originalSend = res.send;
-      res.send = function (body) {
-        if (typeof body === 'string' && apiKey) {
-          body = body.replace(
-            '<head>',
-            `<head><script>window.GEMINI_API_KEY = ${JSON.stringify(apiKey)};</script>`
-          );
-        }
-        return originalSend.call(this, body);
-      };
+  // AI PROXY ENDPOINT
+  app.post("/api/ai/generate", async (req, res) => {
+    if (!genAI) {
+      return res.status(500).json({ error: "AI not initialized on server (missing key)" });
     }
-    next();
+
+    try {
+      const { model, contents, config } = req.body;
+      const aiModel = genAI.getGenerativeModel({ 
+        model: model || "gemini-1.5-flash",
+        systemInstruction: config?.systemInstruction
+      });
+
+      const result = await aiModel.generateContent({
+        contents,
+        generationConfig: {
+          temperature: config?.temperature || 0.7,
+          responseMimeType: config?.responseMimeType || "text/plain"
+        }
+      });
+
+      const response = await result.response;
+      res.json({ text: response.text() });
+    } catch (error: any) {
+      console.error("[SERVER AI ERROR]", error);
+      res.status(500).json({ error: error.message || "Internal AI Error" });
+    }
   });
 
-  // API ROUTES
+  // CONFIG ENDPOINT
   app.get("/api/config", (req, res) => {
-    // We look for keys starting with 'AIza' to avoid placeholders
-    const keys = [process.env.GEMINI_API_KEY, process.env.API_KEY, process.env.AI_KEY, process.env.VITE_GEMINI_API_KEY];
-    const currentKey = keys.find(k => k && k.startsWith('AIza')) || apiKey || "";
-    
     res.json({ 
-      apiKey: currentKey,
-      hasKey: !!currentKey
+      hasKey: !!apiKey,
+      status: apiKey ? "ready" : "missing_key"
     });
   });
 
   app.get("/api/health", (req, res) => {
-    res.json({ 
-      status: "online", 
-      time: new Date().toISOString()
-    });
+    res.json({ status: "online", time: new Date().toISOString() });
   });
 
-  // Logging middleware for other requests
-  app.use((req, res, next) => {
-    console.log(`[DEBUG] ${req.method} ${req.url}`);
-    next();
-  });
-
-  // 3. Vite / Static Middleware
+  // Vite / Static Middleware
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
-      define: {
-        "process.env.GEMINI_API_KEY": JSON.stringify(apiKey),
-        "process.env.API_KEY": JSON.stringify(apiKey),
-      }
+      appType: "spa"
     });
-    
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
