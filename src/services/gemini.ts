@@ -8,6 +8,14 @@ let aiInstance: any = null;
 const getApiKey = () => {
   // Direct reference for Vite replacement
   const key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  
+  // Safe debug logging
+  if (key) {
+    console.log(`[GEMINI] Key detected: ${key.substring(0, 4)}... (length: ${key.length})`);
+  } else {
+    console.warn("[GEMINI] No API key detected in process.env");
+  }
+
   // Ignore placeholders
   if (key === "MY_GEMINI_API_KEY" || key.length < 10) return "";
   return key;

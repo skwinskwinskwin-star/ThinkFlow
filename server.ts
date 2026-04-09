@@ -55,13 +55,17 @@ async function startServer() {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
+      define: {
+        "process.env.GEMINI_API_KEY": JSON.stringify(apiKey),
+        "process.env.API_KEY": JSON.stringify(apiKey),
+      }
     });
     
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
