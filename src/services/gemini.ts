@@ -1,34 +1,16 @@
-import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Initialize Gemini directly in the frontend as per system guidelines.
-// The API key is injected by the platform. We check multiple possible names.
-const getApiKey = () => {
-  // Priority: GEMINI_API_KEY -> API_KEY -> VITE_ versions
-  const key = process.env.GEMINI_API_KEY || 
-              process.env.API_KEY || 
-              (import.meta as any).env.VITE_GEMINI_API_KEY || 
-              (import.meta as any).env.VITE_API_KEY || 
-              "";
-  return key;
-};
-
-const ai = new GoogleGenAI({ apiKey: getApiKey() });
-
 export async function checkAIStatus() {
-  const key = getApiKey();
-  const hasKey = !!key && key.length > 5;
-  
-  if (hasKey) {
-    console.log('[AI STATUS CHECK] Key found. Starts with:', key.substring(0, 4) + '...');
-  } else {
-    console.log('[AI STATUS CHECK] NO KEY FOUND');
+  try {
+    const res = await fetch("/api/health");
+    const data = await res.json();
+    return { 
+      status: data.hasKey ? "online" : "offline", 
+      hasKey: data.hasKey 
+    };
+  } catch (err) {
+    return { status: "offline", hasKey: false };
   }
-  
-  return { 
-    status: hasKey ? "online" : "offline", 
-    hasKey 
-  };
 }
 
 const PERSONA_PROMPTS = {
@@ -76,20 +58,22 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const key = getApiKey();
-    if (!key) {
-      throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
-    }
-    
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents,
-      config: { 
-        temperature: 0.7,
+    const response = await fetch("/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [...history, { role: 'user', text: prompt }],
         systemInstruction
-      }
+      })
     });
-    return response.text || "No response";
+    
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || "AI Error");
+    }
+
+    const data = await response.json();
+    return data.text || "No response";
   } catch (error: any) {
     console.error("AI Error:", error);
     throw error;
@@ -109,22 +93,22 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const key = getApiKey();
-    if (!key) {
-      throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { 
-        temperature: 0.8, 
-        responseMimeType: "application/json" 
-      }
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        isJson: true
+      })
     });
 
-    const text = response.text || "";
-    const cleanJson = text.replace(/```json\n?|```/g, '').trim();
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || "Knowledge Tree Error");
+    }
+
+    const data = await response.json();
+    const cleanJson = data.text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(cleanJson) as KnowledgeTree;
   } catch (error: any) {
     console.error("Knowledge Tree Error:", error);
@@ -135,20 +119,22 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
-    const key = getApiKey();
-    if (!key) {
-      throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        systemInstruction: "Expert educator."
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || "Explanation Error");
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { 
-        temperature: 0.8,
-        systemInstruction: "Expert educator."
-      }
-    });
-    return response.text || "Error";
+    const data = await response.json();
+    return data.text || "Error";
   } catch (error: any) {
     console.error("Explanation Error:", error);
     throw error;
