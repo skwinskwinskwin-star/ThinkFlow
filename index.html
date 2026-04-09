@@ -35,7 +35,9 @@
       font-size: 16px !important; /* Prevents auto-zoom on iOS */
     }
   </style>
-  <script src="/gemini-config.js"></script>
+  <script>
+    document.write('<script src="/gemini-config.js?v=' + Date.now() + '"><\/script>');
+  </script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="text-slate-100">

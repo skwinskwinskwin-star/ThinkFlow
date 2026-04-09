@@ -11,21 +11,25 @@ const getApiKey = async () => {
   // 1. Try injected window variable (The most reliable fail-safe)
   if (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) {
     const k = (window as any).GEMINI_API_KEY;
-    console.log(`[GEMINI] Found in window.GEMINI_API_KEY: ${k.substring(0, 4)}...`);
-    return k;
+    if (k && k.startsWith("AIza")) {
+      console.log(`[GEMINI] Found valid key in window.GEMINI_API_KEY: ${k.substring(0, 4)}...`);
+      return k;
+    } else {
+      console.warn("[GEMINI] window.GEMINI_API_KEY exists but is invalid or empty.");
+    }
   }
 
   // 2. Try Vite's import.meta.env
   const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (viteKey && viteKey.startsWith("AIza")) {
-    console.log(`[GEMINI] Found in import.meta.env: ${viteKey.substring(0, 4)}...`);
+    console.log(`[GEMINI] Found valid key in import.meta.env: ${viteKey.substring(0, 4)}...`);
     return viteKey;
   }
 
   // 3. Try process.env (Vite define)
   const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
   if (envKey && envKey.startsWith("AIza") && envKey !== "MY_GEMINI_API_KEY") {
-    console.log(`[GEMINI] Found in process.env: ${envKey.substring(0, 4)}...`);
+    console.log(`[GEMINI] Found valid key in process.env: ${envKey.substring(0, 4)}...`);
     return envKey;
   }
 
@@ -35,11 +39,24 @@ const getApiKey = async () => {
     const response = await fetch('/api/config');
     const data = await response.json();
     if (data.apiKey && data.apiKey.startsWith("AIza")) {
-      console.log(`[GEMINI] Found in /api/config: ${data.apiKey.substring(0, 4)}...`);
+      console.log(`[GEMINI] Found valid key in /api/config: ${data.apiKey.substring(0, 4)}...`);
       return data.apiKey;
     }
   } catch (e) {
     console.error("[GEMINI] Failed to fetch from /api/config", e);
+  }
+
+  // 5. LAST RESORT: Check if we can find it in any global scope
+  if (typeof window !== 'undefined') {
+     const anyWindow = window as any;
+     const keys = Object.keys(anyWindow).filter(k => k.includes('KEY') || k.includes('GEMINI'));
+     for (const k of keys) {
+       const val = anyWindow[k];
+       if (typeof val === 'string' && val.startsWith('AIza')) {
+         console.log(`[GEMINI] Found key in global window.${k}: ${val.substring(0, 4)}...`);
+         return val;
+       }
+     }
   }
 
   console.error("[GEMINI] CRITICAL: NO API KEY FOUND IN ANY SOURCE!");
