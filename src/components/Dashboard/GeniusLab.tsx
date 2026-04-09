@@ -19,22 +19,12 @@ export const GeniusLab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isKeyMissing, setIsKeyMissing] = useState(false);
-
-  useEffect(() => {
-    checkAIStatus().then(res => setIsKeyMissing(!res.hasKey));
-  }, []);
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
     setIsLoading(true);
     setError(null);
     try {
-      const status = await checkAIStatus();
-      if (!status.hasKey) {
-        setIsKeyMissing(true);
-        throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
-      }
       const generatedTree = await generateKnowledgeTree(topic, profile);
       setTree(generatedTree);
       setSelectedNode(generatedTree.nodes[0]);
@@ -102,29 +92,6 @@ export const GeniusLab: React.FC = () => {
               {t.geniusLabSub}
             </p>
           </div>
-
-          {isKeyMissing && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col md:flex-row items-center gap-6 text-amber-200 mb-8"
-            >
-              <AlertCircle className="w-8 h-8 shrink-0 text-amber-500" />
-              <div className="text-left flex-1">
-                <p className="uppercase tracking-tighter font-black text-lg">Ключ API не обнаружен</p>
-                <p className="opacity-70 font-medium text-sm">Пожалуйста, добавьте <b>GEMINI_API_KEY</b> в меню <b>Settings → Secrets</b> и обновите страницу.</p>
-              </div>
-              <Button 
-                variant="outline" 
-                className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10 shrink-0"
-                onClick={() => {
-                  checkAIStatus().then(res => setIsKeyMissing(!res.hasKey));
-                }}
-              >
-                Проверить снова
-              </Button>
-            </motion.div>
-          )}
 
           <Card className="p-2 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl max-w-2xl mx-auto">
                 <div className="flex flex-col md:flex-row gap-2">
