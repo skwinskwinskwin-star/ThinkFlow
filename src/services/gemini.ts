@@ -2,14 +2,29 @@ import { GoogleGenAI } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
 // Initialize Gemini directly in the frontend as per system guidelines.
-// The API key is injected by the platform into process.env.GEMINI_API_KEY.
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY || "" 
-});
+// The API key is injected by the platform. We check multiple possible names.
+const getApiKey = () => {
+  // Priority: GEMINI_API_KEY -> API_KEY -> VITE_ versions
+  const key = process.env.GEMINI_API_KEY || 
+              process.env.API_KEY || 
+              (import.meta as any).env.VITE_GEMINI_API_KEY || 
+              (import.meta as any).env.VITE_API_KEY || 
+              "";
+  return key;
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 export async function checkAIStatus() {
-  const hasKey = !!(process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY);
-  console.log('[AI STATUS CHECK] Key present:', hasKey);
+  const key = getApiKey();
+  const hasKey = !!key && key.length > 5;
+  
+  if (hasKey) {
+    console.log('[AI STATUS CHECK] Key found. Starts with:', key.substring(0, 4) + '...');
+  } else {
+    console.log('[AI STATUS CHECK] NO KEY FOUND');
+  }
+  
   return { 
     status: hasKey ? "online" : "offline", 
     hasKey 
@@ -61,6 +76,11 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
+    const key = getApiKey();
+    if (!key) {
+      throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
+    }
+    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents,
@@ -89,6 +109,11 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
+    const key = getApiKey();
+    if (!key) {
+      throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -110,6 +135,11 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
   try {
+    const key = getApiKey();
+    if (!key) {
+      throw new Error("API Key is missing. Please add GEMINI_API_KEY in Settings -> Secrets.");
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],

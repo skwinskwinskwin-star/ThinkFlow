@@ -113,11 +113,12 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
         xp: (profile.xp || 0) + 15
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
+      const errorMessage = error?.message || "I'm sorry, I encountered an error. Please try again.";
       setMessages(prev => [...prev, {
         role: 'model',
-        text: "I'm sorry, I encountered an error. Please try again.",
+        text: `⚠️ **Error**: ${errorMessage}`,
         timestamp: Date.now()
       }]);
     } finally {
