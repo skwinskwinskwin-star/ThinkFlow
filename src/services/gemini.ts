@@ -7,29 +7,26 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
  * NO TEMPLATES. NO FALLBACKS. REAL AI ONLY.
  */
 
-/**
- * Robust API Key Discovery
- */
 const getApiKey = async (): Promise<string | null> => {
   const checkKey = (k: any) => k && typeof k === 'string' && k.length > 15;
 
-  // 1. Check Meta Tag (Highest priority)
+  // 1. Check Process Env (Vite Define - Highest priority now)
+  const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (checkKey(envKey)) return envKey as string;
+
+  // 2. Check Meta Tag
   if (typeof document !== 'undefined') {
     const meta = document.querySelector('meta[name="gemini-api-key"]');
     const metaKey = meta?.getAttribute('content');
     if (checkKey(metaKey)) return metaKey as string;
   }
 
-  // 2. Check Window Injection
+  // 3. Check Window Injection
   if (typeof window !== 'undefined') {
     const win = window as any;
     const injectedKey = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
     if (checkKey(injectedKey)) return injectedKey;
   }
-
-  // 3. Check Process Env (Vite Define)
-  const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  if (checkKey(envKey)) return envKey as string;
 
   // 4. Server Fetch Fallback
   try {
