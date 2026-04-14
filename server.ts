@@ -14,23 +14,29 @@ async function startServer() {
 
   // DYNAMIC ENV GENERATION & KEY DISCOVERY
   const getApiKeyFromEnv = () => {
-    console.log("[SERVER] Current process.env keys:", Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('GEMINI') || k.includes('AI')));
+    const envKeys = Object.keys(process.env);
+    console.log("[SERVER] Scanning environment for keys...");
     
-    const keys = {
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-      API_KEY: process.env.API_KEY,
-      AI_KEY: process.env.AI_KEY,
-      VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY
-    };
+    // Priority list of environment variables
+    const priority = ['GEMINI_API_KEY', 'API_KEY', 'AI_KEY', 'VITE_GEMINI_API_KEY'];
     
-    // Log keys for debugging (masked)
-    Object.entries(keys).forEach(([k, v]) => {
-      if (v) console.log(`[SERVER] Found in process.env: ${k}=${v.substring(0, 4)}...`);
-    });
+    for (const keyName of priority) {
+      const val = process.env[keyName];
+      if (val && val.length > 15) {
+        console.log(`[SERVER] Found valid key in ${keyName} (Length: ${val.length})`);
+        return val;
+      }
+    }
 
-    const foundKey = Object.values(keys).find(k => k && k.length > 5) || "";
+    // Secondary scan for anything containing 'KEY' and 'AI'
+    const fallbackKeyName = envKeys.find(k => (k.includes('KEY') || k.includes('GEMINI')) && process.env[k]?.length! > 15);
+    if (fallbackKeyName) {
+      const val = process.env[fallbackKeyName];
+      console.log(`[SERVER] Found potential key in ${fallbackKeyName} (Length: ${val?.length})`);
+      return val;
+    }
     
-    return foundKey;
+    return "";
   };
 
   let apiKey = getApiKeyFromEnv();

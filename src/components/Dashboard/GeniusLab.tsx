@@ -58,20 +58,47 @@ export const GeniusLab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-8">
+      <div className="h-full flex flex-col items-center justify-center space-y-12">
         <div className="relative">
           <motion.div 
             animate={{ rotate: 360 }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="w-32 h-32 border-4 border-dashed border-indigo-500/30 rounded-full"
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            className="w-48 h-48 border-4 border-dashed border-indigo-500/20 rounded-full"
+          />
+          <motion.div 
+            animate={{ rotate: -360 }}
+            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 w-48 h-48 border-2 border-dashed border-emerald-500/20 rounded-full"
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Brain className="w-12 h-12 text-indigo-500 animate-pulse" />
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Brain className="w-16 h-16 text-indigo-500" />
+            </motion.div>
           </div>
         </div>
-        <div className="text-center space-y-2">
-          <h3 className="text-2xl font-black uppercase tracking-tighter text-white">{t.constructingKnowledge}</h3>
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-gray-500">{t.architectingModel} {topic}</p>
+        <div className="text-center space-y-4 max-w-md">
+          <h3 className="text-3xl font-black uppercase tracking-tighter text-white">
+            {t.constructingKnowledge || "Architecting Mind"}
+          </h3>
+          <div className="space-y-2">
+            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ x: "-100%" }}
+                animate={{ x: "100%" }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="h-full w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
+              />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 animate-pulse">
+              Neural Mapping: {topic}
+            </p>
+          </div>
+          <p className="text-xs text-gray-500 font-medium italic">
+            "The AI is currently synthesizing metaphors from your interests to build a personalized learning path..."
+          </p>
         </div>
       </div>
     );

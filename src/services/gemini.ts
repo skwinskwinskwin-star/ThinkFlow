@@ -1,60 +1,68 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 
-// Initialize Gemini directly in the frontend as per system guidelines.
+/**
+ * GENIUS ENGINE v2.0
+ * Professional-grade AI Service for ThinkFlow
+ */
+
 let aiInstance: any = null;
 let cachedKey: string | null = null;
 
-const getApiKey = async () => {
+/**
+ * Robust API Key Discovery
+ * Checks multiple layers of injection and fallbacks
+ */
+const getApiKey = async (): Promise<string> => {
   if (cachedKey) return cachedKey;
-  
-  console.log("[GEMINI] Starting robust key discovery...");
-  
-  const sources = [
-    { name: "process.env.API_KEY", val: process.env.API_KEY },
-    { name: "process.env.GEMINI_API_KEY", val: process.env.GEMINI_API_KEY },
-    { name: "window.__GEMINI_API_KEY__", val: (window as any).__GEMINI_API_KEY__ },
-    { name: "window.GEMINI_API_KEY", val: (window as any).GEMINI_API_KEY },
-    { name: "import.meta.env.VITE_GEMINI_API_KEY", val: (import.meta as any).env?.VITE_GEMINI_API_KEY }
-  ];
 
-  // First pass: look for something that looks like a real key
-  for (const source of sources) {
-    const k = source.val;
-    if (k && typeof k === 'string' && k.length > 20 && k.startsWith("AIza")) {
-      console.log(`[GEMINI] Found valid-looking key in ${source.name}`);
-      cachedKey = k;
-      return k;
+  console.log("[GENIUS-ENGINE] Initiating key discovery sequence...");
+
+  const checkKey = (k: any) => k && typeof k === 'string' && k.length > 15;
+
+  // 1. Check window injection (from server.ts /gemini-config.js)
+  if (typeof window !== 'undefined') {
+    const win = window as any;
+    const injectedKey = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
+    if (checkKey(injectedKey)) {
+      console.log("[GENIUS-ENGINE] Key found in window scope.");
+      cachedKey = injectedKey;
+      return injectedKey;
     }
   }
 
-  // Second pass: try dynamic fetch from server with cache buster
+  // 2. Check process.env (Safely)
   try {
-    console.log("[GEMINI] Attempting dynamic fetch from /api/config...");
+    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : null;
+    if (checkKey(envKey)) {
+      console.log("[GENIUS-ENGINE] Key found in process.env.");
+      cachedKey = envKey as string;
+      return envKey as string;
+    }
+  } catch (e) {
+    // process.env not available
+  }
+
+  // 3. Dynamic fetch from server (Last resort, cache-busted)
+  try {
+    console.log("[GENIUS-ENGINE] Attempting live fetch from server...");
     const response = await fetch(`/api/config?t=${Date.now()}`);
     const data = await response.json();
-    if (data.apiKey && data.apiKey.length > 20) {
-      console.log(`[GEMINI] Found key via dynamic fetch: ${data.apiKey.substring(0, 4)}...`);
+    if (checkKey(data.apiKey)) {
+      console.log("[GENIUS-ENGINE] Key retrieved from /api/config.");
       cachedKey = data.apiKey;
       return data.apiKey;
     }
   } catch (e) {
-    console.warn("[GEMINI] Dynamic fetch failed");
+    console.warn("[GENIUS-ENGINE] Server fetch failed.");
   }
 
-  // Third pass: use anything that is long enough
-  for (const source of sources) {
-    const k = source.val;
-    if (k && typeof k === 'string' && k.length > 10) {
-      console.log(`[GEMINI] Using fallback key from ${source.name} (length: ${k.length})`);
-      cachedKey = k;
-      return k;
-    }
-  }
-
-  throw new Error("API Key is missing. Please ensure API_KEY is set in Settings and refresh the page.");
+  throw new Error("CRITICAL: Gemini API Key not found. Please check your AI Studio Settings.");
 };
 
+/**
+ * Get or initialize the AI instance
+ */
 async function getAI() {
   if (!aiInstance) {
     const key = await getApiKey();
@@ -64,35 +72,54 @@ async function getAI() {
 }
 
 export async function checkAIStatus() {
-  const key = await getApiKey();
-  const hasKey = !!key && key.length > 10;
-  return { status: hasKey ? "online" : "offline", hasKey };
+  try {
+    const key = await getApiKey();
+    return { status: "online", hasKey: !!key };
+  } catch (e) {
+    return { status: "offline", hasKey: false };
+  }
 }
 
-const PERSONA_PROMPTS = {
-  teacher: (p: UserProfile) => `
-    You are the CONCEPT ARCHITECT. Explain everything through the user's interests: ${p.interests.join(', ')}.
-    MISSION: Use metaphors. Simplify for a ${p.studentClass} level student.
-    DEPTH: ${p.learningDepth || 'Deep'}. STYLE: ${p.explanationStyle || 'Metaphorical'}.
-    LANGUAGE: Respond in ${p.language === 'ru' ? 'Russian' : 'English'}.
-  `,
-  coach: (p: UserProfile) => `
-    You are the LOGIC COACH. Do NOT give answers. Ask guiding questions.
-    INTERESTS: ${p.interests.join(', ')}.
-    LANGUAGE: Respond in ${p.language === 'ru' ? 'Russian' : 'English'}.
-  `,
-  trainer: (p: UserProfile) => `
-    You are the SKILL TRAINER. Generate tasks based on interests: ${p.interests.join(', ')}.
-    LANGUAGE: Respond in ${p.language === 'ru' ? 'Russian' : 'English'}.
-  `,
+/**
+ * System Personas with advanced engineering prompts
+ */
+const SYSTEM_INSTRUCTIONS = {
   genius: (p: UserProfile) => `
-    You are the GENIUS LAB CORE AI. Build mental models.
-    INTERESTS: ${p.interests.join(', ')}.
-    STYLE: Engaging, 3D metaphors.
-    LANGUAGE: Respond in ${p.language === 'ru' ? 'Russian' : 'English'}.
+    You are the GENIUS LAB CORE. You are a world-class educator and cognitive scientist.
+    Your goal is to build a "Knowledge Tree" that maps out a complex topic for a student.
+    
+    CONTEXT:
+    - Student Age/Level: ${p.studentClass} (${p.age} years old)
+    - Interests (Use as Metaphors): ${p.interests.join(', ')}
+    - Learning Depth: ${p.learningDepth}
+    - Style: ${p.explanationStyle}
+    
+    CORE DIRECTIVE:
+    - Use the student's interests as the primary vehicle for explanation.
+    - If they like "Gaming", explain variables as "Inventory Slots".
+    - If they like "Cooking", explain algorithms as "Recipes".
+    - Be encouraging, high-energy, and intellectually stimulating.
+    - Respond in ${p.language === 'ru' ? 'Russian' : 'English'}.
+  `,
+  chat: (p: UserProfile) => `
+    You are the THINKFLOW SIDEKICK. You are a helpful, witty, and brilliant AI tutor.
+    You help the student navigate their Knowledge Tree.
+    
+    USER PROFILE:
+    - Interests: ${p.interests.join(', ')}
+    - Level: ${p.studentClass}
+    
+    GUIDELINES:
+    - Always relate answers back to the user's interests.
+    - Keep explanations concise but deep.
+    - Use formatting (bold, lists) for readability.
+    - Respond in ${p.language === 'ru' ? 'Russian' : 'English'}.
   `
 };
 
+/**
+ * Main Chat Function
+ */
 export async function askThinkFlowAI(
   type: AIModelType,
   prompt: string,
@@ -101,9 +128,7 @@ export async function askThinkFlowAI(
   attachment?: { data: string; mimeType: string }
 ) {
   const ai = await getAI();
-  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
-
-  const systemInstruction = PERSONA_PROMPTS[type](profile);
+  const systemInstruction = type === 'genius' ? SYSTEM_INSTRUCTIONS.genius(profile) : SYSTEM_INSTRUCTIONS.chat(profile);
   
   const contents: any[] = history.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
@@ -125,26 +150,33 @@ export async function askThinkFlowAI(
         systemInstruction
       }
     });
-    return response.text || "No response";
+    return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error: any) {
-    console.error("AI Error:", error);
+    console.error("[GENIUS-ENGINE] Chat Error:", error);
     throw error;
   }
 }
 
+/**
+ * Knowledge Tree Generation
+ * Uses structured output for 100% reliability
+ */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
   const ai = await getAI();
-  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
-
+  
+  const systemInstruction = SYSTEM_INSTRUCTIONS.genius(profile);
   const prompt = `
-    Create a structured Knowledge Tree for: "${topic}".
-    User: ${profile.age} years old, interests: ${profile.interests.join(', ')}.
-    Return ONLY JSON:
-    {
-      "topic": "string",
-      "nodes": [{ "id": "string", "label": "string", "description": "string", "metaphor": "string", "challenge": "string", "type": "core"|"branch"|"leaf" }],
-      "connections": [{ "from": "id1", "to": "id2" }]
-    }
+    GENERATE A KNOWLEDGE TREE FOR: "${topic}".
+    
+    The tree must consist of 5-7 nodes that represent a logical progression from basic to advanced concepts.
+    Each node MUST have:
+    1. label: A clear name for the concept.
+    2. description: A clear explanation (2-3 sentences).
+    3. metaphor: A brilliant metaphor based on the user's interests (${profile.interests.join(', ')}).
+    4. challenge: A small "Genius Challenge" (task) for the user to prove they understood the concept.
+    5. type: "core" (the foundation), "branch" (main concepts), or "leaf" (specific details).
+
+    RETURN ONLY A VALID JSON OBJECT.
   `;
 
   try {
@@ -152,37 +184,69 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { 
-        temperature: 0.8, 
-        responseMimeType: "application/json" 
+        temperature: 0.8,
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            topic: { type: Type.STRING },
+            nodes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  label: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  metaphor: { type: Type.STRING },
+                  challenge: { type: Type.STRING },
+                  type: { type: Type.STRING, enum: ["core", "branch", "leaf"] }
+                },
+                required: ["id", "label", "description", "metaphor", "challenge", "type"]
+              }
+            },
+            connections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  from: { type: Type.STRING },
+                  to: { type: Type.STRING }
+                },
+                required: ["from", "to"]
+              }
+            }
+          },
+          required: ["topic", "nodes", "connections"]
+        }
       }
     });
 
-    const text = response.text || "";
-    const cleanJson = text.replace(/```json\n?|```/g, '').trim();
-    return JSON.parse(cleanJson) as KnowledgeTree;
+    const result = JSON.parse(response.text);
+    return result as KnowledgeTree;
   } catch (error: any) {
-    console.error("Knowledge Tree Error:", error);
-    throw error;
+    console.error("[GENIUS-ENGINE] Tree Generation Error:", error);
+    throw new Error("Failed to architect knowledge tree. Please try a different topic or check your connection.");
   }
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const ai = await getAI();
-  if (!ai) throw new Error("API key is missing. Please provide a valid API key.");
-
   const prompt = `Explain "${topic}" using metaphors from: ${interests.join(', ')}.`;
+  
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { 
         temperature: 0.8,
-        systemInstruction: "Expert educator."
+        systemInstruction: "You are a world-class educator who simplifies complex topics using creative metaphors."
       }
     });
-    return response.text || "Error";
+    return response.text || "I couldn't generate an explanation.";
   } catch (error: any) {
-    console.error("Explanation Error:", error);
+    console.error("[GENIUS-ENGINE] Explanation Error:", error);
     throw error;
   }
 }
