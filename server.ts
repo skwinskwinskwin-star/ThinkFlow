@@ -44,7 +44,7 @@ async function startServer() {
   // AGGRESSIVE FILE SEARCH
   if (!apiKey) {
     console.log("[SERVER] Key not found in process.env, searching files...");
-    const filesToSearch = ['.env', 'firebase-applet-config.json', 'firebase-blueprint.json'];
+    const filesToSearch = ['.env', '.env.example', 'firebase-applet-config.json', 'firebase-blueprint.json'];
     for (const file of filesToSearch) {
       try {
         const filePath = path.join(process.cwd(), file);
