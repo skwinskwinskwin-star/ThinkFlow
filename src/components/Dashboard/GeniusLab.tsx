@@ -93,11 +93,11 @@ export const GeniusLab: React.FC = () => {
               />
             </div>
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 animate-pulse">
-              Neural Mapping: {topic}
+              Internet Research & Neural Mapping: {topic}
             </p>
           </div>
           <p className="text-xs text-gray-500 font-medium italic">
-            "The AI is currently synthesizing metaphors from your interests to build a personalized learning path..."
+            "The AI is currently studying the latest information on the internet and synthesizing metaphors from your interests..."
           </p>
         </div>
       </div>

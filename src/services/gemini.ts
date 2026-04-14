@@ -108,6 +108,7 @@ export async function askThinkFlowAI(
 
 /**
  * Knowledge Tree Generation with Local Fallback
+ * Now includes Google Search grounding for "Internet Research"
  */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
   const ai = await getAI();
@@ -117,12 +118,23 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
     return generateLocalKnowledgeTree(topic, profile);
   }
 
-  const prompt = `GENERATE A KNOWLEDGE TREE FOR: "${topic}". Use interests: ${profile.interests.join(', ')}. RETURN ONLY JSON.`;
+  const prompt = `
+    RESEARCH AND GENERATE A KNOWLEDGE TREE FOR: "${topic}".
+    
+    INSTRUCTIONS:
+    1. Use Google Search to find the most up-to-date and accurate information about this topic.
+    2. Identify the 5-7 most critical concepts that a student needs to master.
+    3. For each concept, create a brilliant metaphor based on the user's interests: ${profile.interests.join(', ')}.
+    4. Design a "Genius Challenge" for each node.
+    
+    RETURN ONLY A VALID JSON OBJECT.
+  `;
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      tools: [{ googleSearch: {} }],
       config: { 
         temperature: 0.8,
         responseMimeType: "application/json",

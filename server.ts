@@ -18,7 +18,7 @@ async function startServer() {
     console.log("[SERVER] Scanning environment for keys...");
     
     // Priority list of environment variables
-    const priority = ['GEMINI_API_KEY', 'API_KEY', 'AI_KEY', 'VITE_GEMINI_API_KEY'];
+    const priority = ['GEMINI_API_KEY', 'API_KEY', 'GOOGLE_API_KEY', 'AI_KEY', 'VITE_GEMINI_API_KEY'];
     
     for (const keyName of priority) {
       const val = process.env[keyName];
