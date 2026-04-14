@@ -18,6 +18,17 @@ const getApiKey = async (): Promise<string | null> => {
 
   const checkKey = (k: any) => k && typeof k === 'string' && k.length > 15;
 
+  // 1. Check Meta Tag (Highest priority)
+  if (typeof document !== 'undefined') {
+    const meta = document.querySelector('meta[name="gemini-api-key"]');
+    const metaKey = meta?.getAttribute('content');
+    if (checkKey(metaKey)) {
+      console.log("[GENIUS-ENGINE] Key found in meta tag.");
+      cachedKey = metaKey as string;
+      return metaKey as string;
+    }
+  }
+
   if (typeof window !== 'undefined') {
     const win = window as any;
     const injectedKey = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;

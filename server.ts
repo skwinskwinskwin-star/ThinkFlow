@@ -137,17 +137,43 @@ async function startServer() {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
-      define: {
-        "process.env.GEMINI_API_KEY": JSON.stringify(apiKey),
-        "process.env.API_KEY": JSON.stringify(apiKey),
-      }
     });
-    app.use(vite.middlewares);
+    
+    app.use(async (req, res, next) => {
+      if (req.url === '/' || req.url === '/index.html') {
+        try {
+          const currentKey = getApiKeyFromEnv() || apiKey;
+          let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+          html = await vite.transformIndexHtml(req.url, html);
+          
+          // Inject the key directly into the HTML
+          const injection = `
+            <meta name="gemini-api-key" content="${currentKey}">
+            <script>window.__GEMINI_API_KEY__ = "${currentKey}";</script>
+          `;
+          html = html.replace('</head>', `${injection}</head>`);
+          
+          res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+          return;
+        } catch (e) {
+          vite.ssrFixStacktrace(e as Error);
+          next(e);
+        }
+      }
+      vite.middlewares(req, res, next);
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const currentKey = getApiKeyFromEnv() || apiKey;
+      let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+      const injection = `
+        <meta name="gemini-api-key" content="${currentKey}">
+        <script>window.__GEMINI_API_KEY__ = "${currentKey}";</script>
+      `;
+      html = html.replace('</head>', `${injection}</head>`);
+      res.send(html);
     });
   }
 

@@ -52,55 +52,35 @@ export const generateLocalKnowledgeTree = (topic: string, profile: UserProfile):
   const interest = profile.interests[0] || "General";
   const metaphors = METAPHOR_MAP[interest] || DEFAULT_METAPHOR;
   
-  const nodes: KnowledgeNode[] = [
-    {
-      id: "1",
-      label: `Foundations of ${topic}`,
-      description: `Understanding the core principles and basic definitions of ${topic}. This is where everything starts.`,
-      metaphor: `Think of this as ${metaphors.foundation}. Without a solid base, the rest cannot exist.`,
-      challenge: `Explain the basic concept of ${topic} to a friend using a simple example.`,
-      type: "core"
-    },
-    {
-      id: "2",
-      label: "Variables & Elements",
-      description: `Identifying the individual components that make up ${topic}. How they change and interact.`,
-      metaphor: `Each element here is like a ${metaphors.variable}. You can swap them, change them, and see how they affect the whole.`,
-      challenge: `List 3 key elements of ${topic} and explain how they differ from each other.`,
-      type: "branch"
-    },
-    {
-      id: "3",
-      label: "Process & Flow",
-      description: `How ${topic} functions over time. The cycles and patterns that drive the system.`,
-      metaphor: `This is the ${metaphors.loop}. It's a continuous movement that keeps the system alive.`,
-      challenge: `Draw a diagram showing the 'flow' of ${topic} from start to finish.`,
-      type: "branch"
-    },
-    {
-      id: "4",
-      label: "Advanced Logic",
-      description: `Deep dive into the complex decision-making and rules that govern ${topic}.`,
-      metaphor: `This is your ${metaphors.logic}. It's the brain of the operation, deciding what happens next.`,
-      challenge: `Solve a complex problem related to ${topic} by applying the rules you've learned.`,
-      type: "branch"
-    },
-    {
-      id: "5",
-      label: "Mastery Level",
-      description: `The pinnacle of ${topic}. Combining everything to create something new or solve high-level problems.`,
-      metaphor: `You are now facing the ${metaphors.advanced}. This requires all your skills combined.`,
-      challenge: `Create a small project or presentation that demonstrates your complete understanding of ${topic}.`,
-      type: "leaf"
-    }
-  ];
+  // Dynamic structure generation to avoid "template" feel
+  const nodeCount = 5 + Math.floor(Math.random() * 3); // 5 to 7 nodes
+  const nodes: KnowledgeNode[] = [];
 
-  const connections = [
-    { from: "1", to: "2" },
-    { from: "2", to: "3" },
-    { from: "3", to: "4" },
-    { from: "4", to: "5" }
-  ];
+  const adjectives = ["Core", "Essential", "Fundamental", "Crucial", "Primary"];
+  const actions = ["Mastering", "Exploring", "Decoding", "Analyzing", "Building"];
+
+  for (let i = 1; i <= nodeCount; i++) {
+    let type: 'core' | 'branch' | 'leaf' = 'branch';
+    if (i === 1) type = 'core';
+    if (i === nodeCount) type = 'leaf';
+
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const act = actions[Math.floor(Math.random() * actions.length)];
+
+    nodes.push({
+      id: i.toString(),
+      label: i === 1 ? `${adj} ${topic}` : `${act} ${topic} Level ${i}`,
+      description: `Deep dive into phase ${i} of ${topic}. This stage focuses on the ${type} aspects of the subject, ensuring a comprehensive understanding.`,
+      metaphor: i === 1 ? `Think of this as ${metaphors.foundation}.` : `This is like ${metaphors.variable} in your ${interest} journey.`,
+      challenge: `Challenge ${i}: Apply ${topic} to a real-world scenario involving ${interest}.`,
+      type
+    });
+  }
+
+  const connections = [];
+  for (let i = 1; i < nodeCount; i++) {
+    connections.push({ from: i.toString(), to: (i + 1).toString() });
+  }
 
   return {
     topic,
