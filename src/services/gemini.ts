@@ -10,31 +10,46 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
 const getApiKey = async (): Promise<string | null> => {
   const checkKey = (k: any) => k && typeof k === 'string' && k.length > 15;
 
-  // 1. Check Process Env (Vite Define - Highest priority now)
+  // 1. Check Process Env (Vite Define)
   const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  if (checkKey(envKey)) return envKey as string;
+  if (checkKey(envKey)) {
+    console.log("[GEMINI-SDK] Key found in process.env");
+    return envKey as string;
+  }
 
   // 2. Check Meta Tag
   if (typeof document !== 'undefined') {
     const meta = document.querySelector('meta[name="gemini-api-key"]');
     const metaKey = meta?.getAttribute('content');
-    if (checkKey(metaKey)) return metaKey as string;
+    if (checkKey(metaKey)) {
+      console.log("[GEMINI-SDK] Key found in meta tag");
+      return metaKey as string;
+    }
   }
 
   // 3. Check Window Injection
   if (typeof window !== 'undefined') {
     const win = window as any;
     const injectedKey = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
-    if (checkKey(injectedKey)) return injectedKey;
+    if (checkKey(injectedKey)) {
+      console.log("[GEMINI-SDK] Key found in window object");
+      return injectedKey;
+    }
   }
 
   // 4. Server Fetch Fallback
   try {
     const response = await fetch(`/api/config?t=${Date.now()}`);
     const data = await response.json();
-    if (checkKey(data.apiKey)) return data.apiKey;
-  } catch (e) {}
+    if (checkKey(data.apiKey)) {
+      console.log("[GEMINI-SDK] Key found via server fetch");
+      return data.apiKey;
+    }
+  } catch (e) {
+    console.error("[GEMINI-SDK] Server fetch failed:", e);
+  }
 
+  console.error("[GEMINI-SDK] CRITICAL: No API key found in any source!");
   return null;
 };
 
