@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Sparkles, Target, Zap, ArrowRight, Loader2, CheckCircle2, ChevronRight, MessageSquare, Star, AlertCircle } from 'lucide-react';
-import { generateKnowledgeTree, checkAIStatus } from '../../services/gemini';
+import { generateKnowledgeTree, cachedKey } from '../../services/gemini';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { KnowledgeTree, KnowledgeNode } from '../../types';
@@ -118,6 +118,12 @@ export const GeniusLab: React.FC = () => {
                 <Zap className="w-4 h-4" />
                 {t.nextGenAI}
               </div>
+              {!cachedKey && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest">
+                  <Brain className="w-4 h-4" />
+                  HEURISTIC ENGINE ACTIVE (OFFLINE AI)
+                </div>
+              )}
               {profile?.geniusMode && (
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
                   <Sparkles className="w-4 h-4" />
