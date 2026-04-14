@@ -105,14 +105,25 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents,
-      config: { temperature: 0.7, systemInstruction }
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      tools: [{ googleSearch: {} }] as any
     });
-    return response.text || "I'm sorry, I couldn't generate a response.";
+
+    const chat = model.startChat({
+      history: history.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      })),
+      generationConfig: {
+        temperature: 0.7,
+      }
+    });
+
+    const result = await chat.sendMessage(prompt);
+    return result.response.text();
   } catch (error: any) {
-    console.warn("[GENIUS-ENGINE] API Error, falling back to Local Engine:", error);
+    console.warn("[GENIUS-ENGINE] Chat API Error:", error);
     return getLocalChatResponse(prompt, profile);
   }
 }
@@ -142,53 +153,26 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      tools: [{ googleSearch: {} }] as any
+    });
+
+    const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ googleSearch: {} }],
-      config: { 
-        temperature: 0.8,
+      generationConfig: {
+        temperature: 0.7,
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            topic: { type: Type.STRING },
-            nodes: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  label: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  metaphor: { type: Type.STRING },
-                  challenge: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ["core", "branch", "leaf"] }
-                },
-                required: ["id", "label", "description", "metaphor", "challenge", "type"]
-              }
-            },
-            connections: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  from: { type: Type.STRING },
-                  to: { type: Type.STRING }
-                },
-                required: ["from", "to"]
-              }
-            }
-          },
-          required: ["topic", "nodes", "connections"]
-        }
       }
     });
 
-    return JSON.parse(response.text) as KnowledgeTree;
+    const text = result.response.text();
+    console.log("[GENIUS-ENGINE] AI Research Complete. Synthesizing Tree...");
+    return JSON.parse(text) as KnowledgeTree;
   } catch (error: any) {
-    console.warn("[GENIUS-ENGINE] API Tree Error, falling back to Local Engine:", error);
-    return generateLocalKnowledgeTree(topic, profile);
+    console.error("[GENIUS-ENGINE] CRITICAL AI ERROR:", error);
+    // Only fallback if absolutely necessary, but log the error clearly
+    throw new Error(`AI Research Failed: ${error.message}. Please check your API Key.`);
   }
 }
 
