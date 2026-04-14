@@ -90,7 +90,7 @@ export async function askThinkFlowAI(
   }
 
   const systemInstruction = type === 'genius' 
-    ? `You are the GENIUS LAB CORE. Student: ${profile.studentClass}. Interests: ${profile.interests.join(', ')}. Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`
+    ? `You are the GENIUS LAB CORE. Student: ${profile.studentClass}. Interests: ${profile.interests.join(', ')}. Use Google Search to provide accurate, real-world information. Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`
     : `You are the THINKFLOW SIDEKICK. Relate everything to: ${profile.interests.join(', ')}. Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`;
   
   const contents: any[] = history.map(m => ({
@@ -105,23 +105,17 @@ export async function askThinkFlowAI(
   contents.push({ role: 'user', parts: currentParts });
 
   try {
-    const model = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      tools: [{ googleSearch: {} }] as any
-    });
-
-    const chat = model.startChat({
-      history: history.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }]
-      })),
-      generationConfig: {
-        temperature: 0.7,
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents,
+      tools: [{ googleSearch: {} }],
+      config: { 
+        temperature: 0.7, 
+        systemInstruction,
+        toolConfig: { includeServerSideToolInvocations: true }
       }
     });
-
-    const result = await chat.sendMessage(prompt);
-    return result.response.text();
+    return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error: any) {
     console.warn("[GENIUS-ENGINE] Chat API Error:", error);
     return getLocalChatResponse(prompt, profile);
@@ -141,38 +135,67 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   }
 
   const prompt = `
-    RESEARCH AND GENERATE A KNOWLEDGE TREE FOR: "${topic}".
+    RESEARCH AND GENERATE A COMPREHENSIVE KNOWLEDGE TREE FOR: "${topic}".
     
     INSTRUCTIONS:
     1. Use Google Search to find the most up-to-date and accurate information about this topic.
-    2. Identify the 5-7 most critical concepts that a student needs to master.
-    3. For each concept, create a brilliant metaphor based on the user's interests: ${profile.interests.join(', ')}.
-    4. Design a "Genius Challenge" for each node.
+    2. Identify 5-7 critical concepts.
+    3. For each concept, the "description" MUST be a detailed, 2-3 sentence explanation of the concept itself.
+    4. Create a brilliant metaphor based on the user's interests: ${profile.interests.join(', ')}.
+    5. Design a "Genius Challenge" for each node.
     
     RETURN ONLY A VALID JSON OBJECT.
   `;
 
   try {
-    const model = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      tools: [{ googleSearch: {} }] as any
-    });
-
-    const result = await model.generateContent({
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
+      tools: [{ googleSearch: {} }],
+      config: { 
         temperature: 0.7,
         responseMimeType: "application/json",
+        toolConfig: { includeServerSideToolInvocations: true },
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            topic: { type: Type.STRING },
+            nodes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  label: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  metaphor: { type: Type.STRING },
+                  challenge: { type: Type.STRING },
+                  type: { type: Type.STRING, enum: ["core", "branch", "leaf"] }
+                },
+                required: ["id", "label", "description", "metaphor", "challenge", "type"]
+              }
+            },
+            connections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  from: { type: Type.STRING },
+                  to: { type: Type.STRING }
+                },
+                required: ["from", "to"]
+              }
+            }
+          },
+          required: ["topic", "nodes", "connections"]
+        }
       }
     });
 
-    const text = result.response.text();
-    console.log("[GENIUS-ENGINE] AI Research Complete. Synthesizing Tree...");
-    return JSON.parse(text) as KnowledgeTree;
+    return JSON.parse(response.text) as KnowledgeTree;
   } catch (error: any) {
     console.error("[GENIUS-ENGINE] CRITICAL AI ERROR:", error);
-    // Only fallback if absolutely necessary, but log the error clearly
-    throw new Error(`AI Research Failed: ${error.message}. Please check your API Key.`);
+    return generateLocalKnowledgeTree(topic, profile);
   }
 }
 
