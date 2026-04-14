@@ -119,9 +119,17 @@ export const GeniusLab: React.FC = () => {
                 {t.nextGenAI}
               </div>
               {!cachedKey && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest">
-                  <Brain className="w-4 h-4" />
-                  HEURISTIC ENGINE ACTIVE (OFFLINE AI)
+                <div className="flex flex-col items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest">
+                    <Brain className="w-4 h-4" />
+                    HEURISTIC ENGINE ACTIVE (OFFLINE AI)
+                  </div>
+                  <div className="max-w-xs p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg text-left">
+                    <p className="text-[9px] text-amber-400/80 font-bold mb-1 uppercase tracking-wider">⚠️ ИИ в режиме офлайн</p>
+                    <p className="text-[8px] text-amber-300/60 leading-relaxed">
+                      Чтобы включить настоящий ИИ: Нажми на ⚙️ (Settings) слева внизу → Выбери "Gemini API Key".
+                    </p>
+                  </div>
                 </div>
               )}
               {profile?.geniusMode && (

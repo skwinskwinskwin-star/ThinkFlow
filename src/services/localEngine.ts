@@ -7,83 +7,83 @@ import { KnowledgeTree, UserProfile, KnowledgeNode } from "../types";
  * without external API dependencies.
  */
 
-const METAPHOR_MAP: Record<string, Record<string, string>> = {
+const METAPHOR_MAP: Record<string, Record<string, string[]>> = {
   "Gaming": {
-    "foundation": "The Game Engine",
-    "variable": "Inventory Slot",
-    "loop": "Respawn Cycle",
-    "logic": "Skill Tree",
-    "advanced": "Final Boss Mechanics"
+    "core": ["The Game Engine", "Source Code", "Level 0: Tutorial"],
+    "branch": ["Inventory Management", "Skill Tree Progression", "NPC Interaction", "Side Quests"],
+    "leaf": ["Final Boss Strategy", "Speedrun Techniques", "Easter Eggs"]
   },
   "Cooking": {
-    "foundation": "The Base Recipe",
-    "variable": "Ingredient",
-    "loop": "Stirring Process",
-    "logic": "Taste Testing",
-    "advanced": "Molecular Gastronomy"
+    "core": ["The Base Recipe", "Kitchen Essentials", "Mise en Place"],
+    "branch": ["Seasoning Balance", "Heat Control", "Plating Techniques", "Flavor Profiles"],
+    "leaf": ["Signature Dish", "Molecular Gastronomy", "Chef's Special"]
   },
   "Sports": {
-    "foundation": "The Training Camp",
-    "variable": "Player Stats",
-    "loop": "Practice Drills",
-    "logic": "Game Strategy",
-    "advanced": "Championship Finals"
+    "core": ["The Training Camp", "Basic Drills", "The Rulebook"],
+    "branch": ["Player Stats", "Team Tactics", "Offensive Plays", "Defensive Strategy"],
+    "leaf": ["Championship Finals", "MVP Performance", "Post-game Analysis"]
   },
   "Music": {
-    "foundation": "The Rhythm Section",
-    "variable": "Musical Note",
-    "loop": "Chorus Loop",
-    "logic": "Composition Rules",
-    "advanced": "Symphonic Arrangement"
+    "core": ["The Rhythm Section", "Music Theory 101", "The Scale"],
+    "branch": ["Chord Progressions", "Melodic Hooks", "Harmony Layers", "Tempo Control"],
+    "leaf": ["Symphonic Arrangement", "Solo Improvisation", "Studio Production"]
   }
 };
 
 const DEFAULT_METAPHOR = {
-  "foundation": "The Building Blocks",
-  "variable": "Component",
-  "loop": "Repeating Pattern",
-  "logic": "Decision Path",
-  "advanced": "Master Structure"
+  "core": ["The Foundation", "The Blueprint", "The Core"],
+  "branch": ["The Structure", "The Logic", "The Flow", "The Connection"],
+  "leaf": ["The Result", "The Mastery", "The Application"]
 };
 
 export const generateLocalKnowledgeTree = (topic: string, profile: UserProfile): KnowledgeTree => {
   console.log("[LOCAL-ENGINE] Synthesizing knowledge for:", topic);
 
-  const interest = profile.interests[0] || "General";
-  const metaphors = METAPHOR_MAP[interest] || DEFAULT_METAPHOR;
+  // Normalize topic (simple fix for common typos)
+  const normalizedTopic = topic.replace(/фуекци/gi, 'функци').replace(/линейн/gi, 'Линейн');
   
-  // Dynamic structure generation to avoid "template" feel
-  const nodeCount = 5 + Math.floor(Math.random() * 3); // 5 to 7 nodes
+  const interest = profile.interests[0] || "General";
+  const metaphorSet = METAPHOR_MAP[interest] || DEFAULT_METAPHOR;
+  
+  const nodeCount = 5;
   const nodes: KnowledgeNode[] = [];
 
-  const adjectives = ["Core", "Essential", "Fundamental", "Crucial", "Primary"];
-  const actions = ["Mastering", "Exploring", "Decoding", "Analyzing", "Building"];
+  const stageNames = [
+    { label: "Введение в", desc: "Разбираем самые основы и то, зачем это вообще нужно." },
+    { label: "Механика", desc: "Как это работает внутри? Изучаем главные правила и переменные." },
+    { label: "Логика", desc: "Связываем элементы воедино. Учимся видеть закономерности." },
+    { label: "Практика", desc: "Применяем знания для решения реальных задач." },
+    { label: "Мастерство", desc: "Выходим на продвинутый уровень и создаем что-то свое." }
+  ];
 
   for (let i = 1; i <= nodeCount; i++) {
     let type: 'core' | 'branch' | 'leaf' = 'branch';
     if (i === 1) type = 'core';
     if (i === nodeCount) type = 'leaf';
 
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const act = actions[Math.floor(Math.random() * actions.length)];
+    const stage = stageNames[i-1];
+    const metaphors = metaphorSet[type];
+    const metaphor = metaphors[Math.floor(Math.random() * metaphors.length)];
 
     nodes.push({
       id: i.toString(),
-      label: i === 1 ? `${adj} ${topic}` : `${act} ${topic} Level ${i}`,
-      description: `Deep dive into phase ${i} of ${topic}. This stage focuses on the ${type} aspects of the subject, ensuring a comprehensive understanding.`,
-      metaphor: i === 1 ? `Think of this as ${metaphors.foundation}.` : `This is like ${metaphors.variable} in your ${interest} journey.`,
-      challenge: `Challenge ${i}: Apply ${topic} to a real-world scenario involving ${interest}.`,
+      label: `${stage.label} ${normalizedTopic}`,
+      description: `${stage.desc} На этом этапе мы фокусируемся на ${type === 'core' ? 'фундаментальных' : type === 'branch' ? 'структурных' : 'финальных'} аспектах темы.`,
+      metaphor: `Представь, что это — ${metaphor}. В контексте ${interest} это критически важно для успеха.`,
+      challenge: `Испытание ${i}: Используй принципы ${normalizedTopic}, чтобы решить задачу в стиле ${interest}.`,
       type
     });
   }
 
-  const connections = [];
-  for (let i = 1; i < nodeCount; i++) {
-    connections.push({ from: i.toString(), to: (i + 1).toString() });
-  }
+  const connections = [
+    { from: "1", to: "2" },
+    { from: "2", to: "3" },
+    { from: "3", to: "4" },
+    { from: "4", to: "5" }
+  ];
 
   return {
-    topic,
+    topic: normalizedTopic,
     nodes,
     connections
   };
