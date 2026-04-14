@@ -7,16 +7,52 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
  * NO TEMPLATES. NO FALLBACKS. REAL AI ONLY.
  */
 
-const getAI = () => {
-  const key = process.env.GEMINI_API_KEY || process.env.API_KEY;
+/**
+ * Robust API Key Discovery
+ */
+const getApiKey = async (): Promise<string | null> => {
+  const checkKey = (k: any) => k && typeof k === 'string' && k.length > 15;
+
+  // 1. Check Meta Tag (Highest priority)
+  if (typeof document !== 'undefined') {
+    const meta = document.querySelector('meta[name="gemini-api-key"]');
+    const metaKey = meta?.getAttribute('content');
+    if (checkKey(metaKey)) return metaKey as string;
+  }
+
+  // 2. Check Window Injection
+  if (typeof window !== 'undefined') {
+    const win = window as any;
+    const injectedKey = win.__GEMINI_API_KEY__ || win.GEMINI_API_KEY;
+    if (checkKey(injectedKey)) return injectedKey;
+  }
+
+  // 3. Check Process Env (Vite Define)
+  const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (checkKey(envKey)) return envKey as string;
+
+  // 4. Server Fetch Fallback
+  try {
+    const response = await fetch(`/api/config?t=${Date.now()}`);
+    const data = await response.json();
+    if (checkKey(data.apiKey)) return data.apiKey;
+  } catch (e) {}
+
+  return null;
+};
+
+const getAI = async () => {
+  const key = await getApiKey();
   if (!key) {
-    throw new Error("CRITICAL: Gemini API Key is missing. Please add GEMINI_API_KEY to your environment settings.");
+    throw new Error("API Key not found. Please add your Gemini API Key in the Settings (gear icon) to enable Real AI Research.");
   }
   return new GoogleGenAI({ apiKey: key });
 };
 
 export function isLocalMode() {
-  return !(process.env.GEMINI_API_KEY || process.env.API_KEY);
+  // We'll check this asynchronously in components if needed, 
+  // but for now, we assume we want AI.
+  return false; 
 }
 
 /**
@@ -29,7 +65,7 @@ export async function askThinkFlowAI(
   history: Message[] = [],
   attachment?: { data: string; mimeType: string }
 ) {
-  const ai = getAI();
+  const ai = await getAI();
   
   const systemInstruction = type === 'genius' 
     ? `You are the GENIUS LAB CORE. You are a world-class researcher. 
@@ -69,7 +105,7 @@ export async function askThinkFlowAI(
  * Uses Google Search grounding for real-time research.
  */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
-  const ai = getAI();
+  const ai = await getAI();
 
   const prompt = `
     PERFORM DEEP INTERNET RESEARCH AND GENERATE A KNOWLEDGE TREE FOR: "${topic}".
@@ -139,7 +175,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 }
 
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
-  const ai = getAI();
+  const ai = await getAI();
 
   const prompt = `Explain "${topic}" using deep, insightful metaphors from: ${interests.join(', ')}. 
                   Focus on the mechanics and logic of the topic.`;
