@@ -101,19 +101,17 @@ if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[SERVER] Running on http://localhost:${PORT}`);
   });
-} else {
+} else if (!process.env.VERCEL) {
+  // Production server but NOT on Vercel (e.g. self-hosted container)
   const distPath = path.join(process.cwd(), 'dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
   
-  // Only listen if not in serverless environment
-  if (!process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`[SERVER] Running on http://localhost:${PORT}`);
-    });
-  }
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[SERVER] Running on http://localhost:${PORT}`);
+  });
 }
 
 // Remove startServer().catch() as it is no longer defined.
