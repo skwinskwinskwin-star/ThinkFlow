@@ -4,6 +4,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import fs from "fs";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

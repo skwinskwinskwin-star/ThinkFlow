@@ -58,46 +58,66 @@ export const GeniusLab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-12">
-        <div className="relative">
-          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="w-48 h-48 border-4 border-dashed border-indigo-500/20 rounded-full"
-          />
-          <motion.div 
-            animate={{ rotate: -360 }}
-            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 w-48 h-48 border-2 border-dashed border-emerald-500/20 rounded-full"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-[#020204]">
+        <div className="w-full max-w-2xl space-y-8">
+          <div className="relative flex flex-col items-center">
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="w-64 h-64 border border-indigo-500/10 rounded-full flex items-center justify-center"
             >
-              <Brain className="w-16 h-16 text-indigo-500" />
+              <div className="w-48 h-48 border border-emerald-500/10 rounded-full flex items-center justify-center">
+                <div className="w-32 h-32 border border-indigo-500/20 rounded-full flex items-center justify-center animate-pulse" />
+              </div>
             </motion.div>
-          </div>
-        </div>
-        <div className="text-center space-y-4 max-w-md">
-          <h3 className="text-3xl font-black uppercase tracking-tighter text-white">
-            {t.constructingKnowledge || "Architecting Mind"}
-          </h3>
-          <div className="space-y-2">
-            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ x: "-100%" }}
-                animate={{ x: "100%" }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="h-full w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
-              />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Brain className="w-16 h-16 text-indigo-500" />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 animate-pulse">
-              Internet Research & Neural Mapping: {topic}
-            </p>
           </div>
-          <p className="text-xs text-gray-500 font-medium italic">
-            "The AI is currently studying the latest information on the internet and synthesizing metaphors from your interests..."
+
+          <div className="space-y-6 font-mono">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest">Researching Objective</span>
+              <span className="text-[10px] text-indigo-400 font-bold uppercase">{topic}</span>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] text-gray-400">
+                <span>INTEL_EXTRACTION_PROTOCOL_v4.2</span>
+                <span>STATE: ACTIVE</span>
+              </div>
+              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "0%" }}
+                  transition={{ duration: 15, ease: "linear" }}
+                  className="h-full w-full bg-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { label: 'Google Search API', status: 'SYNCHRONIZING' },
+                { label: 'Metadata Synthesis', status: 'IN_PROGRESS' },
+                { label: 'Interest-Logic Mapping', status: 'COMPUTING' },
+                { label: 'Metaphor Generation', status: 'READY' }
+              ].map((step, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                  <span className="text-[10px] text-gray-300 uppercase tracking-tighter">{step.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-black ${step.status === 'READY' ? 'text-emerald-400' : 'text-indigo-400 animate-pulse'}`}>
+                      {step.status}
+                    </span>
+                    <div className={`w-1 h-1 rounded-full ${step.status === 'READY' ? 'bg-emerald-400' : 'bg-indigo-400 animate-pulse'}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-center text-[11px] text-gray-600 italic font-medium">
+            "We are performing deep internet research on {topic} through the lens of your interests..."
           </p>
         </div>
       </div>

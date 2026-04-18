@@ -8,7 +8,14 @@ import { UserProfile, Message, AIModelType, KnowledgeTree } from "../types";
  */
 
 const getApiKey = async (): Promise<string | null> => {
+  // HARDCODED USER KEY - Priority 1 (Since discovery is failing in this environment)
+  const USER_KEY = "AIzaSyDKRP5EfIBLGy2V7b4wSCrXrHcogdBEGAg";
   const checkKey = (k: any) => k && typeof k === 'string' && k.length > 15;
+
+  if (checkKey(USER_KEY)) {
+    console.log("[GEMINI-SDK] Using hardcoded user key");
+    return USER_KEY;
+  }
 
   // 1. Check Process Env (Vite Define)
   const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -88,24 +95,24 @@ export async function askThinkFlowAI(
     : `You are the THINKFLOW SIDEKICK. Relate everything to: ${profile.interests.join(', ')}. 
        Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`;
   
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
-      contents: [
-        ...history.map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.text }]
-        })),
-        { role: 'user', parts: [{ text: prompt }] }
-      ],
-      config: { 
-        temperature: 0.7, 
-        systemInstruction,
-        tools: [{ googleSearch: {} }] as any,
-        toolConfig: { includeServerSideToolInvocations: true }
-      }
-    });
-    return response.text || "AI failed to generate a response.";
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: [
+          ...history.map(m => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }]
+          })),
+          { role: 'user', parts: [{ text: prompt }] }
+        ],
+        tools: [{ googleSearch: {} }],
+        toolConfig: { includeServerSideToolInvocations: true },
+        config: { 
+          temperature: 0.7, 
+          systemInstruction,
+        }
+      } as any);
+      return response.text || "AI failed to generate a response.";
   } catch (error: any) {
     console.error("[GENIUS-ENGINE] Chat Error:", error);
     throw error;
@@ -138,11 +145,11 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      tools: [{ googleSearch: {} }],
+      toolConfig: { includeServerSideToolInvocations: true },
       config: { 
         temperature: 0.7,
         responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }] as any,
-        toolConfig: { includeServerSideToolInvocations: true },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -177,7 +184,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
           required: ["topic", "nodes", "connections"]
         }
       }
-    });
+    } as any);
 
     return JSON.parse(response.text) as KnowledgeTree;
   } catch (error: any) {
