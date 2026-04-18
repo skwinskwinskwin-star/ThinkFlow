@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
@@ -45,8 +44,7 @@ app.post("/api/ai/chat", async (req, res) => {
           parts: [{ text: m.text }]
         })),
         { role: 'user', parts: [{ text: prompt }] }
-      ],
-      tools: [{ googleSearch: {} }] as any,
+      ]
     });
 
     res.json({ text: result.response.text() });
@@ -71,8 +69,7 @@ app.post("/api/ai/tree", async (req, res) => {
 
     const prompt = `GENERATE A KNOWLEDGE TREE FOR: "${topic}". 5-7 core concepts explained via Metaphors of: ${profile.interests.join(', ')}. Return ONLY JSON.`;
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ googleSearch: {} }] as any,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
 
     res.json(JSON.parse(result.response.text()));
@@ -83,7 +80,7 @@ app.post("/api/ai/tree", async (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "online", time: new Date().toISOString() });
+  res.json({ status: "online", keyLoaded: !!getPrivateApiKey() });
 });
 
 // Important for Vercel: Export the app
@@ -91,6 +88,7 @@ export default app;
 
 // Vite / Static Middleware
 if (process.env.NODE_ENV !== "production") {
+  const { createServer: createViteServer } = await import("vite");
   const vite = await createViteServer({
     server: { middlewareMode: true },
     appType: "spa",
@@ -102,7 +100,7 @@ if (process.env.NODE_ENV !== "production") {
     console.log(`[SERVER] Running on http://localhost:${PORT}`);
   });
 } else if (!process.env.VERCEL) {
-  // Production server but NOT on Vercel (e.g. self-hosted container)
+  // Production server but NOT on Vercel
   const distPath = path.join(process.cwd(), 'dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
