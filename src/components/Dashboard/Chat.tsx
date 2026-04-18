@@ -70,9 +70,12 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
     const userMsg: Message = {
       role: 'user',
       text: input,
-      timestamp: Date.now(),
-      attachment: attachment || undefined
+      timestamp: Date.now()
     };
+
+    if (attachment) {
+      userMsg.attachment = attachment;
+    }
 
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -94,7 +97,7 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
       if (!sessionId) {
         const sessionData = {
           userId: user.uid,
-          title: input.slice(0, 30) || "New Conversation",
+          title: (input.slice(0, 30) || "New Conversation").trim(),
           type,
           messages: finalMessages,
           lastUpdated: Date.now()

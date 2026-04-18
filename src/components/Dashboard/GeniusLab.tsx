@@ -177,7 +177,7 @@ export const GeniusLab: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        {t.initialize} <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                        {t.initialize} [v5.5] <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </>
                     )}
                   </Button>

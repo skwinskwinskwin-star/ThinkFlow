@@ -99,9 +99,8 @@ const handleAIError = (error: any): string => {
  * Smart Model Selection & Retry Logic
  */
 const MODELS = [
-  "gemini-2.0-flash", 
-  "gemini-3.1-flash-lite-preview",
-  "gemini-2.0-flash-exp"
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite-preview"
 ];
 
 async function callAIWithRetry(
