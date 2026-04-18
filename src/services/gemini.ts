@@ -96,6 +96,49 @@ const handleAIError = (error: any): string => {
 };
 
 /**
+ * Smart Model Selection & Retry Logic
+ */
+const MODELS = [
+  "gemini-2.0-flash", 
+  "gemini-3.1-flash-lite-preview",
+  "gemini-2.0-flash-exp"
+];
+
+async function callAIWithRetry(
+  ai: any, 
+  payload: any, 
+  attempt = 0
+): Promise<any> {
+  const model = MODELS[attempt % MODELS.length];
+  
+  try {
+    return await ai.models.generateContent({
+      ...payload,
+      model
+    } as any);
+  } catch (error: any) {
+    const errorStr = JSON.stringify(error);
+    console.warn(`[GEMINI-SDK] Attempt ${attempt} failed with ${model}:`, error);
+
+    // If it's a 403 (Permission Denied), it might be the 'googleSearch' tool or the model itself
+    if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
+      if (payload.tools) {
+        console.log("[GEMINI-SDK] 403 Error: Retrying without tools...");
+        const { tools, toolConfig, ...rest } = payload;
+        return callAIWithRetry(ai, rest, attempt + 1);
+      }
+    }
+
+    // If it's a 429 (Quota), try next model immediately
+    if (errorStr.includes('429') && attempt < MODELS.length * 2) {
+      return callAIWithRetry(ai, payload, attempt + 1);
+    }
+
+    throw error;
+  }
+}
+
+/**
  * Main Chat Function
  */
 export async function askThinkFlowAI(
@@ -110,15 +153,13 @@ export async function askThinkFlowAI(
   const systemInstruction = type === 'genius' 
     ? `You are the GENIUS LAB CORE. You are a world-class researcher. 
        Student: ${profile.studentClass}. Interests: ${profile.interests.join(', ')}. 
-       MANDATORY: Use Google Search to find the latest data. 
        Explain everything through deep, non-obvious metaphors related to the student's interests.
        Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`
     : `You are the THINKFLOW SIDEKICK. Relate everything to: ${profile.interests.join(', ')}. 
        Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`;
   
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+      const response = await callAIWithRetry(ai, {
         contents: [
           ...history.map(m => ({
             role: m.role === 'user' ? 'user' : 'model',
@@ -132,7 +173,7 @@ export async function askThinkFlowAI(
           temperature: 0.7, 
           systemInstruction,
         }
-      } as any);
+      });
       return response.text || "AI failed to generate a response.";
   } catch (error: any) {
     console.error("[GENIUS-ENGINE] Chat Error:", error);
@@ -142,29 +183,25 @@ export async function askThinkFlowAI(
 
 /**
  * Knowledge Tree Generation
- * Uses Google Search grounding for real-time research.
  */
 export async function generateKnowledgeTree(topic: string, profile: UserProfile): Promise<KnowledgeTree> {
   const ai = await getAI();
 
   const prompt = `
-    PERFORM DEEP INTERNET RESEARCH AND GENERATE A KNOWLEDGE TREE FOR: "${topic}".
+    GENERATE A KNOWLEDGE TREE FOR: "${topic}".
     
-    RESEARCH REQUIREMENTS:
-    1. Use Google Search to find the most recent, accurate, and advanced information about "${topic}".
-    2. Identify 5-7 concepts that represent the "frontier" of knowledge in this field.
-    3. For each concept, write a 3-4 sentence "description" that explains the concept's mechanism and importance.
-    4. Create a unique, sophisticated metaphor based on: ${profile.interests.join(', ')}. 
-       The metaphor must explain HOW the concept works, not just mention the interest.
-    5. Design a "Genius Challenge" that requires applying the concept to a real-world problem in ${profile.interests[0]}.
+    REQUIREMENTS:
+    1. Identify 5-7 core concepts.
+    2. Write a 3-4 sentence "description" for each.
+    3. Create a unique, sophisticated metaphor based on: ${profile.interests.join(', ')}. 
+    4. Design a "Genius Challenge" for each.
     
     OUTPUT FORMAT:
     Return ONLY a valid JSON object matching the KnowledgeTree interface.
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await callAIWithRetry(ai, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       tools: [{ googleSearch: {} }],
       toolConfig: { includeServerSideToolInvocations: true },
@@ -205,7 +242,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
           required: ["topic", "nodes", "connections"]
         }
       }
-    } as any);
+    });
 
     return JSON.parse(response.text) as KnowledgeTree;
   } catch (error: any) {
@@ -220,8 +257,7 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
   const prompt = `Explain "${topic}" using deep, insightful metaphors from: ${interests.join(', ')}. 
                   Focus on the mechanics and logic of the topic.`;
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await callAIWithRetry(ai, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.8 }
     });
