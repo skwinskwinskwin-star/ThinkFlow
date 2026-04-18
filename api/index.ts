@@ -60,7 +60,30 @@ app.post("/api/ai/tree", async (req, res) => {
     const { topic, profile } = req.body;
     const ai = new GoogleGenAI({ apiKey: key });
 
-    const prompt = `GENERATE KNOWLEDGE TREE FOR: "${topic}". Metaphors: ${profile?.interests?.join(', ')}. Return JSON: { "topic": string, "concepts": [{ "name": string, "metaphor": string, "explanation": string }] }`;
+    const prompt = `GENERATE A SCIENTIFIC KNOWLEDGE TREE FOR: "${topic}". 
+    Use metaphors related to: ${profile?.interests?.join(', ')}.
+    
+    Return ONLY a JSON object with this EXACT structure:
+    {
+      "topic": "${topic}",
+      "nodes": [
+        {
+          "id": "node_1",
+          "label": "The Core Concept",
+          "description": "Deep scientific explanation",
+          "metaphor": "The metaphor based on interests",
+          "challenge": "A small task for the student to verify understanding",
+          "type": "core"
+        },
+        ... (at least 5 nodes)
+      ],
+      "connections": [
+        { "from": "node_1", "to": "node_2" }
+      ]
+    }
+    
+    Ensure all node IDs are unique strings (node_1, node_2, etc.).
+    Types allowed: 'core', 'branch', 'leaf'.`;
     
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -75,7 +98,14 @@ app.post("/api/ai/tree", async (req, res) => {
     // Clean potential markdown wrap
     text = text.replace(/```json/g, "").replace(/```/g, "").trim();
     
-    res.json(JSON.parse(text));
+    const parsedData = JSON.parse(text);
+    
+    // Safety check to ensure nodes exist
+    if (!parsedData.nodes) {
+      throw new Error("AI failed to generate structural nodes.");
+    }
+
+    res.json(parsedData);
   } catch (err: any) {
     console.error("Tree Error:", err);
     res.status(500).json({ error: err.message });

@@ -28,8 +28,12 @@ export const GeniusLab: React.FC = () => {
     setDebugInfo(null);
     try {
       const generatedTree = await generateKnowledgeTree(topic, profile);
-      setTree(generatedTree);
-      setSelectedNode(generatedTree.nodes[0]);
+      if (generatedTree && Array.isArray(generatedTree.nodes) && generatedTree.nodes.length > 0) {
+        setTree(generatedTree);
+        setSelectedNode(generatedTree.nodes[0]);
+      } else {
+        throw new Error("Invalid structure: AI returned empty tree.");
+      }
     } catch (err) {
       console.error("Genius Lab Error:", err);
       const msg = err instanceof Error ? err.message : "Failed to initialize lab";
@@ -246,7 +250,7 @@ export const GeniusLab: React.FC = () => {
         </div>
         
         <div className="space-y-3">
-          {tree.nodes.map((node, i) => (
+          {tree?.nodes?.map((node, i) => (
             <motion.button
               key={node.id}
               initial={{ x: -20, opacity: 0 }}
@@ -374,15 +378,23 @@ export const GeniusLab: React.FC = () => {
                 <div className="flex gap-4">
                   <Button 
                     variant="ghost" 
-                    disabled={tree.nodes.indexOf(selectedNode) === 0}
-                    onClick={() => setSelectedNode(tree.nodes[tree.nodes.indexOf(selectedNode) - 1])}
+                    disabled={!tree?.nodes || tree.nodes.indexOf(selectedNode) === 0}
+                    onClick={() => {
+                      if (tree?.nodes) {
+                        setSelectedNode(tree.nodes[tree.nodes.indexOf(selectedNode) - 1]);
+                      }
+                    }}
                   >
                     {t.previous}
                   </Button>
                   <Button 
                     variant="ghost"
-                    disabled={tree.nodes.indexOf(selectedNode) === tree.nodes.length - 1}
-                    onClick={() => setSelectedNode(tree.nodes[tree.nodes.indexOf(selectedNode) + 1])}
+                    disabled={!tree?.nodes || tree.nodes.indexOf(selectedNode) === tree.nodes.length - 1}
+                    onClick={() => {
+                      if (tree?.nodes) {
+                        setSelectedNode(tree.nodes[tree.nodes.indexOf(selectedNode) + 1]);
+                      }
+                    }}
                     className="gap-2"
                   >
                     {t.next} <ArrowRight className="w-4 h-4" />
