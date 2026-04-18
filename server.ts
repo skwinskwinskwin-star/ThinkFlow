@@ -92,6 +92,66 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // --- SECURE AI PROXY ROUTES ---
+  app.post("/api/ai/chat", async (req, res) => {
+    const key = getApiKeyFromEnv() || apiKey;
+    if (!key) return res.status(500).json({ error: "AI Key not configured on server" });
+
+    const { type, prompt, profile, history } = req.body;
+    try {
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(key);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: type === 'genius' 
+          ? `You are the GENIUS LAB CORE. world-class researcher. Student: ${profile.studentClass}. Interests: ${profile.interests.join(', ')}. Metaphors based on interests. Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`
+          : `ThinkFlow Sidekick. Interests: ${profile.interests.join(', ')}. Respond in ${profile.language === 'ru' ? 'Russian' : 'English'}.`
+      });
+
+      const result = await model.generateContent({
+        contents: [
+          ...history.map((m: any) => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }]
+          })),
+          { role: 'user', parts: [{ text: prompt }] }
+        ],
+        tools: [{ googleSearch: {} }] as any,
+      });
+
+      res.json({ text: result.response.text() });
+    } catch (error: any) {
+      console.error("AI Proxy Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai/tree", async (req, res) => {
+    const key = getApiKeyFromEnv() || apiKey;
+    if (!key) return res.status(500).json({ error: "AI Key not configured on server" });
+
+    const { topic, profile } = req.body;
+    try {
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(key);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
+
+      const prompt = `GENERATE A KNOWLEDGE TREE FOR: "${topic}". 5-7 core concepts explained via Metaphors of: ${profile.interests.join(', ')}. Return ONLY JSON.`;
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ googleSearch: {} }] as any,
+      });
+
+      res.json(JSON.parse(result.response.text()));
+    } catch (error: any) {
+      console.error("AI Proxy Tree Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // 1. Synchronous Key Delivery (The most robust way)
   app.get("/gemini-config.js", (req, res) => {
     const currentKey = getApiKeyFromEnv() || apiKey;
