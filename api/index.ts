@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const app = express();
 
@@ -26,25 +26,25 @@ app.post("/api/ai/chat", async (req, res) => {
 
     const { type, prompt, profile, history = [] } = req.body;
     
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: type === 'genius' 
-        ? `GENIUS LAB. Student: ${profile?.studentClass}. Interests: ${profile?.interests?.join(', ')}. Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
-        : `ThinkFlow Sidekick. Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
-    });
-
-    const result = await model.generateContent({
+    const ai = new GoogleGenAI({ apiKey: key });
+    
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
       contents: [
         ...history.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: String(m.text || "") }]
         })).filter(m => m.parts[0].text),
         { role: 'user', parts: [{ text: prompt }] }
-      ]
+      ],
+      config: {
+        systemInstruction: type === 'genius' 
+          ? `GENIUS LAB. Student: ${profile?.studentClass}. Interests: ${profile?.interests?.join(', ')}. Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
+          : `ThinkFlow Sidekick. Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
+      }
     });
 
-    res.json({ text: result.response.text() });
+    res.json({ text: response.text });
   } catch (err: any) {
     console.error("Chat Error:", err);
     res.status(500).json({ error: err.message });
@@ -58,16 +58,19 @@ app.post("/api/ai/tree", async (req, res) => {
     if (!key) return res.status(500).json({ error: "API Key not configured" });
 
     const { topic, profile } = req.body;
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const ai = new GoogleGenAI({ apiKey: key });
 
     const prompt = `GENERATE KNOWLEDGE TREE FOR: "${topic}". Metaphors: ${profile?.interests?.join(', ')}. Return JSON: { "topic": string, "concepts": [{ "name": string, "metaphor": string, "explanation": string }] }`;
     
-    const result = await model.generateContent(prompt);
-    let text = result.response.text();
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    let text = response.text || "{}";
     
     // Clean potential markdown wrap
     text = text.replace(/```json/g, "").replace(/```/g, "").trim();
