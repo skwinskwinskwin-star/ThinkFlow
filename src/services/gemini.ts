@@ -13,9 +13,12 @@ async function callServerAI(endpoint: string, payload: any): Promise<any> {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Server AI Error");
-    return data;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Server Error (${response.status})`);
+    }
+
+    return await response.json();
   } catch (error: any) {
     if (error.message.includes('Key')) throw new Error("ИИ временно недоступен (ошибка ключа на сервере).");
     if (error.message.includes('429')) throw new Error("Слишком много запросов. Подождите 1 минуту.");

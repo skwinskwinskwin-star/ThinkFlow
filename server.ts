@@ -116,4 +116,5 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-startServer().catch(err => console.error("[FATAL]", err));
+// Remove startServer().catch() as it is no longer defined.
+// The app is already listening inside the conditional blocks above.
