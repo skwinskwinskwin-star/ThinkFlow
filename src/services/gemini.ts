@@ -75,6 +75,27 @@ export function isLocalMode() {
 }
 
 /**
+ * Refined Error Handler
+ */
+const handleAIError = (error: any): string => {
+  const errorStr = typeof error === 'object' ? JSON.stringify(error) : String(error);
+  
+  if (errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+    return "Слишком много запросов. Лимит бесплатной версии Gemini превышен. Пожалуйста, подождите 1 минуту и попробуйте снова.";
+  }
+  
+  if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
+    return "Ошибка доступа. Проверьте правильность вашего API ключа в настройках.";
+  }
+
+  if (errorStr.includes('SAFETY')) {
+    return "ИИ заблокировал ответ по соображениям безопасности. Попробуйте перефразировать вопрос.";
+  }
+
+  return error.message || "Произошла ошибка при работе с ИИ. Попробуйте еще раз.";
+};
+
+/**
  * Main Chat Function
  */
 export async function askThinkFlowAI(
@@ -97,7 +118,7 @@ export async function askThinkFlowAI(
   
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: [
           ...history.map(m => ({
             role: m.role === 'user' ? 'user' : 'model',
@@ -115,7 +136,7 @@ export async function askThinkFlowAI(
       return response.text || "AI failed to generate a response.";
   } catch (error: any) {
     console.error("[GENIUS-ENGINE] Chat Error:", error);
-    throw error;
+    throw new Error(handleAIError(error));
   }
 }
 
@@ -143,7 +164,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       tools: [{ googleSearch: {} }],
       toolConfig: { includeServerSideToolInvocations: true },
@@ -189,7 +210,7 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
     return JSON.parse(response.text) as KnowledgeTree;
   } catch (error: any) {
     console.error("[GENIUS-ENGINE] Tree Generation Error:", error);
-    throw error;
+    throw new Error(handleAIError(error));
   }
 }
 
@@ -200,13 +221,13 @@ export async function getPersonalizedExplanation(topic: string, interests: strin
                   Focus on the mechanics and logic of the topic.`;
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.8 }
     });
     return response.text || "AI failed to generate an explanation.";
   } catch (error: any) {
     console.error("[GENIUS-ENGINE] Explanation Error:", error);
-    throw error;
+    throw new Error(handleAIError(error));
   }
 }
