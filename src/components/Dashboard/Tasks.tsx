@@ -33,7 +33,25 @@ export const Tasks: React.FC = () => {
         id: doc.id,
         ...doc.data()
       } as Task));
-      setTasks(tasksData);
+
+      // NEW TACTIC: Auto-purge legacy vague tasks
+      const legacyTasks = tasksData.filter(t => 
+        t.description?.includes('real-world scenario') || 
+        t.description?.includes('momentum works') ||
+        t.description?.includes('climate change')
+      );
+
+      if (legacyTasks.length > 0) {
+        legacyTasks.forEach(async (lt) => {
+          try {
+            await deleteDoc(doc(db, 'tasks', lt.id));
+          } catch (e) {
+            console.error("Auto-purge failed:", e);
+          }
+        });
+      }
+
+      setTasks(tasksData.filter(t => !legacyTasks.find(lt => lt.id === t.id)));
       setLoading(false);
     }, (error) => {
       console.error("Tasks fetch error:", error);
@@ -118,14 +136,11 @@ export const Tasks: React.FC = () => {
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return t.language === 'ru' ? 'Сегодня' : 'Today';
-    if (diffDays === 1) return t.language === 'ru' ? 'Вчера' : 'Yesterday';
-    
-    // If future or long ago, show date but maybe year is weird in this env
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('ru-RU', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric'
+    });
   };
 
   if (loading) {
