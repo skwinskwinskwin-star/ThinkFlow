@@ -106,7 +106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         }}
         className="w-full max-w-xl relative"
       >
-        <Card className="w-full p-12 md:p-16 rounded-[4rem] border border-white/10 shadow-3xl relative overflow-hidden bg-white/5 backdrop-blur-xl">
+        <Card className="w-full p-8 md:p-12 lg:p-16 rounded-3xl md:rounded-[4rem] border border-white/10 shadow-3xl relative overflow-hidden bg-white/5 backdrop-blur-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           {/* Glass Reflection */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
           

@@ -166,16 +166,16 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
                   {m.role === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                 </div>
                 <div className={`
-                  p-6 rounded-[2rem] shadow-xl
+                  p-5 md:p-6 rounded-2xl md:rounded-[2rem] shadow-xl break-words
                   ${m.role === 'user' 
                     ? 'bg-indigo-600 text-white rounded-tr-none' 
                     : 'bg-[var(--card)] border border-[var(--border)] rounded-tl-none text-[var(--text)]'}
                 `}>
                   {m.attachment && (
-                    <div className="mb-4 rounded-2xl overflow-hidden border border-white/10">
+                    <div className="mb-4 rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-sm">
                       <img 
                         src={`data:${m.attachment.mimeType};base64,${m.attachment.data}`} 
-                        className="max-h-60 rounded-xl w-full object-cover" 
+                        className="max-h-60 w-full object-contain" 
                         alt="Attachment" 
                       />
                     </div>

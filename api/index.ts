@@ -39,15 +39,27 @@ app.post("/api/ai/chat", async (req, res) => {
       ],
       config: {
         systemInstruction: type === 'genius' 
-          ? `GENIUS LAB. Student: ${profile?.studentClass}. Interests: ${profile?.interests?.join(', ')}. Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
-          : `ThinkFlow Sidekick. Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
+          ? `MANDATORY: You are a GENIUS SCIENTIFIC RESEARCHER. You MUST explain complex topics ONLY through metaphors derived from the student's interests: ${profile?.interests?.join(', ')}. 
+             CRITICAL: Do NOT just list facts. Connect every scientific concept to their specific hobby/interest.
+             Student Class: ${profile?.studentClass}.
+             Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
+          : `You are a ThinkFlow Sidekick. Be encouraging and use metaphorical explanations where helpful based on interests: ${profile?.interests?.join(', ')}. 
+             Respond in ${profile?.language === 'ru' ? 'Russian' : 'English'}.`
       }
     });
 
     res.json({ text: response.text });
   } catch (err: any) {
     console.error("Chat Error:", err);
-    res.status(500).json({ error: err.message });
+    // Handle 503 and other specific Gemini errors
+    const statusCode = err?.status || 500;
+    let msg = err.message || "Internal AI Error";
+    
+    if (statusCode === 503 || msg.includes("503") || msg.includes("UNAVAILABLE")) {
+      msg = "AI System is currently under very high load. Please wait about 5-10 seconds and try again. Spikes are temporary.";
+    }
+    
+    res.status(statusCode).json({ error: msg });
   }
 });
 
@@ -60,8 +72,11 @@ app.post("/api/ai/tree", async (req, res) => {
     const { topic, profile } = req.body;
     const ai = new GoogleGenAI({ apiKey: key });
 
-    const prompt = `GENERATE A SCIENTIFIC KNOWLEDGE TREE FOR: "${topic}". 
-    Use metaphors related to: ${profile?.interests?.join(', ')}.
+    const prompt = `MANDATORY: GENERATE A SCIENTIFIC KNOWLEDGE TREE FOR: "${topic}". 
+    YOU MUST USE METAPHORS EXCLUSIVELY RELATED TO: ${profile?.interests?.join(', ')}.
+    
+    CRITICAL: For each concept, the 'metaphor' field MUST be a vivid comparison to the student's interests. 
+    Do NOT use generic academic explanations in the metaphor field.
     
     Return ONLY a JSON object with this EXACT structure:
     {
