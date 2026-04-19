@@ -11,7 +11,7 @@ import { Button } from '../UI/Button';
 import { Chat } from './Chat';
 
 export const GeniusLab: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, updateProfileData, user } = useAuth();
   const { language, t } = useLanguage();
   const [topic, setTopic] = useState('');
   const [tree, setTree] = useState<KnowledgeTree | null>(null);
@@ -20,6 +20,27 @@ export const GeniusLab: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [floatingXP, setFloatingXP] = useState<{ id: number; amount: number }[]>([]);
+
+  const addXPAction = async (amount: number) => {
+    if (!profile || !user) return;
+    const newXP = (profile.xp || 0) + amount;
+    
+    // Level calc: simplified (sqrt of XP / 10)
+    const newLevel = Math.floor(Math.sqrt(newXP) / 5) + 1;
+    
+    await updateProfileData({ 
+      xp: newXP, 
+      level: newLevel > profile.level ? newLevel : profile.level 
+    });
+
+    // Visual feedback
+    const id = Date.now();
+    setFloatingXP(prev => [...prev, { id, amount }]);
+    setTimeout(() => {
+      setFloatingXP(prev => prev.filter(x => x.id !== id));
+    }, 2000);
+  };
 
   const handleInitialize = async () => {
     if (!topic.trim() || !profile) return;
@@ -31,6 +52,8 @@ export const GeniusLab: React.FC = () => {
       if (generatedTree && Array.isArray(generatedTree.nodes) && generatedTree.nodes.length > 0) {
         setTree(generatedTree);
         setSelectedNode(generatedTree.nodes[0]);
+        // Award XP for starting research
+        addXPAction(25);
       } else {
         throw new Error("Invalid structure: AI returned empty tree.");
       }
@@ -53,6 +76,18 @@ export const GeniusLab: React.FC = () => {
     }
   };
 
+  const handleCompleteChallenge = async () => {
+    if (!selectedNode || !selectedNode.points) return;
+    await addXPAction(selectedNode.points);
+    // Mark as completed locally
+    if (tree) {
+      setTree({
+        ...tree,
+        nodes: tree.nodes.map(n => n.id === selectedNode.id ? { ...n, completed: true } : n)
+      });
+    }
+  };
+
   const resetLab = () => {
     setTree(null);
     setSelectedNode(null);
@@ -62,67 +97,110 @@ export const GeniusLab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-[#020204]">
-        <div className="w-full max-w-2xl space-y-8">
-          <div className="relative flex flex-col items-center">
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="w-64 h-64 border border-indigo-500/10 rounded-full flex items-center justify-center"
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-[#020204] overflow-hidden">
+        {/* Floating XP Context */}
+        <AnimatePresence>
+          {floatingXP.map(xp => (
+            <motion.div
+              key={xp.id}
+              initial={{ opacity: 0, y: 0 }}
+              animate={{ opacity: 1, y: -100 }}
+              exit={{ opacity: 0 }}
+              className="fixed top-1/2 left-1/2 z-[100] text-emerald-400 font-black text-4xl pointer-events-none drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]"
             >
-              <div className="w-48 h-48 border border-emerald-500/10 rounded-full flex items-center justify-center">
-                <div className="w-32 h-32 border border-indigo-500/20 rounded-full flex items-center justify-center animate-pulse" />
-              </div>
+              +{xp.amount} XP
             </motion.div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Brain className="w-16 h-16 text-indigo-500" />
-            </div>
+          ))}
+        </AnimatePresence>
+
+        <div className="w-full max-w-4xl space-y-12 relative">
+          {/* WOW NEURAL SCAN ANIMATION */}
+          <div className="relative flex flex-col items-center">
+            {/* Outer Rings */}
+            {[...Array(3)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{ rotate: 360, scale: [1, 1.1, 1] }}
+                transition={{ duration: 15 + i * 5, repeat: Infinity, ease: "linear" }}
+                className="absolute border border-indigo-500/20 rounded-full"
+                style={{ 
+                  width: `${300 + i * 80}px`, 
+                  height: `${300 + i * 80}px`,
+                  borderStyle: i % 2 === 0 ? 'solid' : 'dashed'
+                }}
+              />
+            ))}
+
+            {/* Pulsing Core */}
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], rotate: -360 }}
+              transition={{ duration: 10, repeat: Infinity }}
+              className="w-48 h-48 rounded-full bg-gradient-to-br from-indigo-600/20 to-emerald-600/20 backdrop-blur-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(79,70,229,0.3)]"
+            >
+              <Brain className="w-20 h-20 text-indigo-400 drop-shadow-[0_0_15px_rgba(129,140,248,0.8)]" />
+            </motion.div>
+
+            {/* Orbiting Particles */}
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{ 
+                  rotate: 360,
+                  x: Math.cos(i * 45) * 150,
+                  y: Math.sin(i * 45) * 150
+                }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                className="absolute w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,1)]"
+              />
+            ))}
           </div>
 
-          <div className="space-y-6 font-mono">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
-              <span className="text-[10px] text-gray-500 uppercase tracking-widest">Researching Objective</span>
-              <span className="text-[10px] text-indigo-400 font-bold uppercase">{topic}</span>
+          <div className="space-y-8 font-mono text-center relative z-10">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">Neural Mapping...</h2>
+              <p className="text-gray-500 text-xs">SYNTHESIZING SCIENTIFIC NODE: <span className="text-emerald-400">{topic}</span></p>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex justify-between text-[10px] text-gray-400">
-                <span>INTEL_EXTRACTION_PROTOCOL_v4.2</span>
-                <span>STATE: ACTIVE</span>
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="flex justify-between text-[10px] text-indigo-400 font-bold">
+                <span>INTEL_PROTO_v7.0</span>
+                <motion.span
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  SYSTEM_OPTIMIZING
+                </motion.span>
               </div>
-              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
                 <motion.div 
-                  initial={{ x: "-100%" }}
-                  animate={{ x: "0%" }}
-                  transition={{ duration: 15, ease: "linear" }}
-                  className="h-full w-full bg-indigo-500"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 12, ease: "easeInOut" }}
+                  className="h-full bg-gradient-to-r from-indigo-600 via-emerald-500 to-indigo-600 animate-pulse rounded-full"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Google Search API', status: 'SYNCHRONIZING' },
-                { label: 'Metadata Synthesis', status: 'IN_PROGRESS' },
-                { label: 'Interest-Logic Mapping', status: 'COMPUTING' },
-                { label: 'Metaphor Generation', status: 'READY' }
+                { label: 'Cloud Search', status: 'OK' },
+                { label: 'Context Logic', status: 'MAP' },
+                { label: 'Neural Mix', status: 'RUN' },
+                { label: 'Metaphor Sync', status: 'READY' }
               ].map((step, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                  <span className="text-[10px] text-gray-300 uppercase tracking-tighter">{step.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-black ${step.status === 'READY' ? 'text-emerald-400' : 'text-indigo-400 animate-pulse'}`}>
-                      {step.status}
-                    </span>
-                    <div className={`w-1 h-1 rounded-full ${step.status === 'READY' ? 'bg-emerald-400' : 'bg-indigo-400 animate-pulse'}`} />
-                  </div>
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.5 }}
+                  key={idx} 
+                  className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md"
+                >
+                  <div className="text-[9px] text-gray-400 uppercase tracking-tighter mb-1">{step.label}</div>
+                  <div className="text-xs font-black text-indigo-400">{step.status}</div>
+                </motion.div>
               ))}
             </div>
           </div>
-
-          <p className="text-center text-[11px] text-gray-600 italic font-medium">
-            "We are performing deep internet research on {topic} through the lens of your interests..."
-          </p>
         </div>
       </div>
     );
@@ -241,7 +319,22 @@ export const GeniusLab: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-8 p-4 md:p-8">
+    <div className="h-full flex flex-col lg:flex-row gap-8 p-4 md:p-8 relative">
+      {/* Floating XP Context for Main View */}
+      <AnimatePresence>
+        {floatingXP.map(xp => (
+          <motion.div
+            key={xp.id}
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: -200 }}
+            exit={{ opacity: 0 }}
+            className="fixed bottom-32 right-12 z-[100] text-emerald-400 font-black text-6xl pointer-events-none drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]"
+          >
+            +{xp.amount} XP
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
       {/* Knowledge Map Sidebar */}
       <div className="w-full lg:w-80 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2">
         <div className="flex items-center justify-between mb-4">
@@ -274,12 +367,15 @@ export const GeniusLab: React.FC = () => {
                 `}>
                   {i + 1}
                 </div>
-                <span className="font-bold text-sm truncate">{node.label}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-sm truncate">{node.label}</span>
+                  {node.points && <span className="text-[9px] opacity-60">+{node.points} XP</span>}
+                </div>
                 {selectedNode?.id === node.id && <ChevronRight className="w-4 h-4 ml-auto" />}
               </div>
-              {node.type === 'core' && (
-                <div className="absolute top-0 right-0 p-1">
-                  <Star className="w-3 h-3 text-yellow-400 fill-current opacity-50" />
+              {node.completed && (
+                <div className="absolute top-2 right-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
               )}
             </motion.button>
@@ -345,15 +441,26 @@ export const GeniusLab: React.FC = () => {
  
                     <div className="space-y-6">
                       <div className="p-8 rounded-[2.5rem] bg-emerald-600/10 border border-emerald-500/20 space-y-6">
-                        <div className="flex items-center gap-2 text-emerald-400">
-                          <Target className="w-5 h-5" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">{t.geniusChallenge}</span>
+                        <div className="flex items-center justify-between gap-2 text-emerald-400">
+                          <div className="flex items-center gap-2">
+                            <Target className="w-5 h-5" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{t.geniusChallenge}</span>
+                          </div>
+                          {selectedNode.points && (
+                            <div className="px-3 py-1 rounded-full bg-emerald-400/10 text-emerald-400 text-[10px] font-black tracking-widest border border-emerald-400/20">
+                              REWARD: +{selectedNode.points} XP
+                            </div>
+                          )}
                         </div>
                         <p className="text-white font-bold leading-relaxed">
                           {selectedNode.challenge}
                         </p>
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-500 gap-2">
-                          <CheckCircle2 className="w-5 h-5" /> {t.completeChallenge}
+                        <Button 
+                          onClick={handleCompleteChallenge}
+                          disabled={selectedNode.completed}
+                          className={`w-full gap-2 ${selectedNode.completed ? 'bg-gray-500 opacity-50' : 'bg-emerald-600 hover:bg-emerald-500'}`}
+                        >
+                          <CheckCircle2 className="w-5 h-5" /> {selectedNode.completed ? 'CHALLENGE COMPLETED' : t.completeChallenge}
                         </Button>
                       </div>
  

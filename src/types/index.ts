@@ -79,6 +79,7 @@ export interface KnowledgeNode {
   description: string;
   metaphor: string;
   challenge: string;
+  points?: number;
   type: 'core' | 'branch' | 'leaf';
   completed?: boolean;
 }

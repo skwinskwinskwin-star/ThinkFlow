@@ -60,3 +60,17 @@
 .glass {
   @apply backdrop-blur-xl bg-white/5 border border-white/10;
 }
+
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+.animate-float-up {
+  animation: float-up 2s ease-out forwards;
+}
+
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.8));
+}

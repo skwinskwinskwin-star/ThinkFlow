@@ -75,19 +75,22 @@ app.post("/api/ai/tree", async (req, res) => {
     const prompt = `MANDATORY: GENERATE A SCIENTIFIC KNOWLEDGE TREE FOR: "${topic}". 
     YOU MUST USE METAPHORS EXCLUSIVELY RELATED TO: ${profile?.interests?.join(', ')}.
     
-    CRITICAL: For each concept, the 'metaphor' field MUST be a vivid comparison to the student's interests. 
-    Do NOT use generic academic explanations in the metaphor field.
-    
+    CRITICAL: 
+    1. The 'metaphor' field MUST be a vivid comparison to the student's interests. 
+    2. The 'challenge' field MUST be a "Normal" Scientific Challenge (e.g., "Calculate the velocity using X", "Compare Y to Z if we use interest A"). It should be logical and slightly difficult.
+    3. Add a 'points' field (integer between 50 and 200) for each node based on difficulty.
+
     Return ONLY a JSON object with this EXACT structure:
     {
       "topic": "${topic}",
       "nodes": [
         {
           "id": "node_1",
-          "label": "The Core Concept",
-          "description": "Deep scientific explanation",
-          "metaphor": "The metaphor based on interests",
-          "challenge": "A small task for the student to verify understanding",
+          "label": "Concept Name",
+          "description": "Scientific explanation",
+          "metaphor": "Metaphor based on interests",
+          "challenge": "A logical, interactive scientific task",
+          "points": 100,
           "type": "core"
         },
         ... (at least 5 nodes)
@@ -97,7 +100,7 @@ app.post("/api/ai/tree", async (req, res) => {
       ]
     }
     
-    Ensure all node IDs are unique strings (node_1, node_2, etc.).
+    Ensure all node IDs are unique strings.
     Types allowed: 'core', 'branch', 'leaf'.`;
     
     const response = await ai.models.generateContent({

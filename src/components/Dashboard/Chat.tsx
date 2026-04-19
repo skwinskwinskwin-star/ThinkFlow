@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Paperclip, X, User, Bot, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +18,7 @@ interface ChatProps {
 }
 
 export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId }) => {
-  const { profile, user } = useAuth();
+  const { profile, user, updateProfileData } = useAuth();
   const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -25,6 +26,17 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [floatingXP, setFloatingXP] = useState<{ id: number; amount: number }[]>([]);
+
+  const addXP = async (amount: number) => {
+    if (!profile || !user) return;
+    const newXP = (profile.xp || 0) + amount;
+    await updateProfileData({ xp: newXP });
+    
+    const id = Date.now();
+    setFloatingXP(prev => [...prev, { id, amount }]);
+    setTimeout(() => setFloatingXP(prev => prev.filter(x => x.id !== id)), 2000);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -112,10 +124,7 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
       }
 
       // Update XP
-      await updateDoc(doc(db, 'users', user.uid), {
-        xp: (profile.xp || 0) + 15
-      });
-
+      await addXP(15);
     } catch (error: any) {
       console.error("Chat error:", error);
       const errorMessage = error?.message || "I'm sorry, I encountered an error. Please try again.";
@@ -130,7 +139,20 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)] max-w-5xl mx-auto w-full">
+    <div className="flex flex-col h-[calc(100vh-160px)] max-w-5xl mx-auto w-full relative">
+      <AnimatePresence>
+        {floatingXP.map(xp => (
+          <motion.div
+            key={xp.id}
+            initial={{ opacity: 0, scale: 0.5, y: 0 }}
+            animate={{ opacity: 1, scale: 1, y: -100 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 z-50 text-indigo-400 font-black text-4xl pointer-events-none drop-shadow-glow"
+          >
+            +{xp.amount} XP
+          </motion.div>
+        ))}
+      </AnimatePresence>
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar"
