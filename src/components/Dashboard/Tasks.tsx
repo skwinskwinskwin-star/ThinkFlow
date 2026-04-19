@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, CheckCircle2, Circle, Trophy, Clock, Plus, Loader2 } from 'lucide-react';
+import { Zap, CheckCircle2, Trophy, Clock, Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Task } from '../../types';
@@ -8,6 +8,7 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
+import { verifyTask } from '../../services/gemini';
 
 export const Tasks: React.FC = () => {
   const { user, profile } = useAuth();
@@ -15,10 +16,13 @@ export const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [taskAnswers, setTaskAnswers] = useState<Record<string, string>>({});
+  const [verifyingTaskId, setVerifyingTaskId] = useState<string | null>(null);
+  const [taskFeedback, setTaskFeedback] = useState<Record<string, { isCorrect: boolean; text: string }>>({});
 
   useEffect(() => {
     if (!user) return;
-
+    
     const tasksRef = collection(db, 'tasks');
     const q = query(tasksRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
 
@@ -67,14 +71,40 @@ export const Tasks: React.FC = () => {
   };
 
   const completeTask = async (task: Task) => {
-    if (!user || !profile || task.status === 'completed') return;
+    const answer = taskAnswers[task.id];
+    if (!user || !profile || task.status === 'completed' || !answer?.trim()) return;
 
+    setVerifyingTaskId(task.id);
     try {
-      await updateDoc(doc(db, 'tasks', task.id), { status: 'completed' });
-      await updateDoc(doc(db, 'users', user.uid), { xp: (profile.xp || 0) + task.xpReward });
+      const result = await verifyTask(task, answer, profile);
+      
+      setTaskFeedback(prev => ({ 
+        ...prev, 
+        [task.id]: { isCorrect: result.isCorrect, text: result.feedback } 
+      }));
+
+      if (result.isCorrect) {
+        const reward = task.xpReward + (result.bonusXP || 0);
+        await updateDoc(doc(db, 'tasks', task.id), { status: 'completed' });
+        await updateDoc(doc(db, 'users', user.uid), { xp: (profile.xp || 0) + reward });
+      }
     } catch (error) {
       console.error("Task completion error:", error);
+    } finally {
+      setVerifyingTaskId(null);
     }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return t.language === 'ru' ? 'Сегодня' : 'Today';
+    if (diffDays === 1) return t.language === 'ru' ? 'Вчера' : 'Yesterday';
+    
+    // If future or long ago, show date but maybe year is weird in this env
+    return date.toLocaleDateString();
   };
 
   if (loading) {
@@ -140,31 +170,53 @@ export const Tasks: React.FC = () => {
               <h3 className="text-2xl font-black mb-3 text-[var(--text)] group-hover:text-indigo-500 transition-colors">
                 {task.title}
               </h3>
-              <p className="text-[var(--muted)] text-sm leading-relaxed mb-8">
+              <p className="text-[var(--muted)] text-sm leading-relaxed mb-6">
                 {task.description}
               </p>
 
-              <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
-                <div className="flex items-center gap-2 text-[var(--muted)] text-[10px] font-black uppercase tracking-widest">
-                  <Clock className="w-4 h-4" />
-                  {new Date(task.createdAt).toLocaleDateString()}
-                </div>
-                
-                {task.status === 'completed' ? (
-                  <div className="flex items-center gap-2 text-emerald-500 font-black uppercase text-[10px] tracking-widest">
-                    <CheckCircle2 className="w-5 h-5" />
-                    {t.complete}
-                  </div>
-                ) : (
+              {task.status !== 'completed' && (
+                <div className="space-y-4 mb-6">
+                  <textarea
+                    value={taskAnswers[task.id] || ''}
+                    onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
+                    placeholder="Provide your scientific proof or logical explanation here..."
+                    className="w-full h-24 bg-[var(--input)] border border-[var(--border)] rounded-2xl p-4 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-indigo-500/50 transition-colors custom-scrollbar resize-none font-medium"
+                  />
+                  
+                  {taskFeedback[task.id] && (
+                    <div className={`p-4 rounded-xl text-xs font-bold border ${taskFeedback[task.id].isCorrect ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-600'}`}>
+                      {taskFeedback[task.id].text}
+                    </div>
+                  )}
+
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={() => completeTask(task)}
-                    className="gap-2 rounded-xl"
+                    disabled={verifyingTaskId === task.id || !taskAnswers[task.id]?.trim()}
+                    className="w-full h-12 gap-2 rounded-2xl border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white"
                   >
-                    <Circle className="w-4 h-4" />
-                    Mark Done
+                    {verifyingTaskId === task.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-5 h-5" />
+                    )}
+                    {verifyingTaskId === task.id ? 'VERIFYING...' : 'SUBMIT & VERIFY'}
                   </Button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
+                <div className="flex items-center gap-2 text-[var(--muted)] text-[10px] font-black uppercase tracking-widest">
+                  <Clock className="w-4 h-4" />
+                  {formatDate(task.createdAt)}
+                </div>
+                
+                {task.status === 'completed' && (
+                  <div className="flex items-center gap-2 text-emerald-500 font-black uppercase text-[10px] tracking-widest">
+                    <CheckCircle2 className="w-5 h-5" />
+                    {t.complete}
+                  </div>
                 )}
               </div>
             </Card>

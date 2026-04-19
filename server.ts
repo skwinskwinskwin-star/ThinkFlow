@@ -6,6 +6,8 @@ import fs from "fs";
 import * as dotenv from "dotenv";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+import { GoogleGenAI, Type } from "@google/genai";
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,9 +16,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-// Private Key Helper (Server-side ONLY)
-const getPrivateApiKey = () => {
-  return process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+// GenAI helper (Modern SDK)
+const getGenAI = () => {
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+  if (!key) throw new Error("GEMINI_API_KEY is not configured");
+  return new GoogleGenAI({ apiKey: key });
 };
 
 app.use(cors());
@@ -25,34 +29,31 @@ app.use(express.json());
 // --- SECURE AI PROXY ROUTES ---
 app.post("/api/ai/chat", async (req, res) => {
   try {
-    const key = getPrivateApiKey();
-    if (!key) return res.status(500).json({ error: "AI Key not configured on server" });
-
+    const ai = getGenAI();
     const { type, prompt, profile, history = [] } = req.body;
+    
     if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
     const safeProfile = profile || { interests: ["science"], studentClass: "7th Grade", language: "ru" };
     const interests = Array.isArray(safeProfile.interests) ? safeProfile.interests : ["logic"];
 
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: type === 'genius' 
-        ? `You are the GENIUS LAB CORE. researcher. Student: ${safeProfile.studentClass}. Interests: ${interests.join(', ')}. Metaphors based on interests. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}.`
-        : `ThinkFlow Sidekick. Interests: ${interests.join(', ')}. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}.`
-    });
-
-    const result = await model.generateContent({
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
       contents: [
         ...history.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: String(m.text || "") }]
         })).filter(m => m.parts[0].text),
         { role: 'user', parts: [{ text: prompt }] }
-      ]
+      ],
+      config: {
+        systemInstruction: type === 'genius' 
+          ? `You are the GENIUS LAB CORE. researcher. Student: ${safeProfile.studentClass}. Interests: ${interests.join(', ')}. MANDATORY: Use metaphors based on interests for every explanation. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}.`
+          : `ThinkFlow Sidekick. Interests: ${interests.join(', ')}. Use metaphors from interests. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}.`
+      }
     });
 
-    res.json({ text: result.response.text() });
+    res.json({ text: response.text });
   } catch (error: any) {
     console.error("AI Proxy Error:", error);
     res.status(500).json({ error: error.message || "Internal AI Error" });
@@ -61,36 +62,86 @@ app.post("/api/ai/chat", async (req, res) => {
 
 app.post("/api/ai/tree", async (req, res) => {
   try {
-    const key = getPrivateApiKey();
-    if (!key) return res.status(500).json({ error: "AI Key not configured on server" });
-
+    const ai = getGenAI();
     const { topic, profile } = req.body;
     if (!topic) return res.status(400).json({ error: "Missing topic" });
 
     const safeProfile = profile || { interests: ["nature"], studentClass: "General", language: "ru" };
     const interests = Array.isArray(safeProfile.interests) ? safeProfile.interests : ["curiosity"];
 
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: { responseMimeType: "application/json" }
+    const prompt = `GENERATE A SCIENTIFIC KNOWLEDGE TREE FOR: "${topic}". 
+    YOU MUST USE METAPHORS EXCLUSIVELY RELATED TO: ${interests.join(', ')}.
+    
+    CRITICAL: 
+    1. For each concept, the 'metaphor' field MUST be a vivid comparison to the student's interests. 
+    2. The 'challenge' field MUST be a logical scientific task (e.g., "Calculate X", "Explain Y via Z").
+    3. Add a 'points' field (integer 50-200) for each node.
+
+    Return ONLY JSON:
+    {
+      "topic": "${topic}",
+      "nodes": [
+        { "id": "n1", "label": "Name", "description": "Science", "metaphor": "Metaphor", "challenge": "Task", "points": 100, "type": "core" }
+      ],
+      "connections": [{ "from": "n1", "to": "n2" }]
+    }`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
     });
 
-    const prompt = `GENERATE A KNOWLEDGE TREE FOR: "${topic}". 5-7 core concepts explained via Metaphors of: ${interests.join(', ')}. Return ONLY JSON in this format: { "topic": string, "concepts": [ { "name": string, "metaphor": string, "explanation": string } ] }`;
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    });
-
-    const text = result.response.text();
-    res.json(JSON.parse(text));
+    res.json(JSON.parse(response.text || '{}'));
   } catch (error: any) {
     console.error("AI Proxy Tree Error:", error);
     res.status(500).json({ error: error.message || "Internal AI Error" });
   }
 });
 
+app.post("/api/ai/verify", async (req, res) => {
+  try {
+    const ai = getGenAI();
+    const { task, answer, profile } = req.body;
+    
+    if (!answer) return res.status(400).json({ error: "Answer is required" });
+
+    const prompt = `SCIENTIFIC VERIFICATION PROTOCOL
+    
+    TASK: ${task.label || task.title}
+    CHALLENGE: ${task.challenge || task.description}
+    STUDENT ANSWER: "${answer}"
+    INTERESTS: ${profile?.interests?.join(', ')}
+    
+    Determine if the answer is scientifically correct and logicially sound given the challenge.
+    
+    Return ONLY JSON:
+    {
+      "isCorrect": boolean,
+      "feedback": "1-2 sentences of explanation",
+      "bonusXP": number (0-50 based on depth)
+    }`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    res.json(JSON.parse(response.text || '{}'));
+  } catch (error: any) {
+    console.error("Verification Error:", error);
+    res.status(500).json({ error: "Verification failed" });
+  }
+});
+
 app.get("/api/health", (req, res) => {
-  res.json({ status: "online", keyLoaded: !!getPrivateApiKey(), env: process.env.NODE_ENV });
+  try {
+    const ai = getGenAI();
+    res.json({ status: "online", keyLoaded: true, env: process.env.NODE_ENV });
+  } catch (e) {
+    res.json({ status: "key_missing", keyLoaded: false, env: process.env.NODE_ENV });
+  }
 });
 
 // Important for Vercel: Export the app

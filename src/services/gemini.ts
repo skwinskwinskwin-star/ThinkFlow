@@ -41,6 +41,10 @@ export async function generateKnowledgeTree(topic: string, profile: UserProfile)
   return await callServerAI('tree', { topic, profile });
 }
 
+export async function verifyTask(task: any, answer: string, profile: UserProfile) {
+  return await callServerAI('verify', { task, answer, profile });
+}
+
 export async function getPersonalizedExplanation(topic: string, interests: string[]) {
   const result = await callServerAI('chat', {
     type: 'coach',

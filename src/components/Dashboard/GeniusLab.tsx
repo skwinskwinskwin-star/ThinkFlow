@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Sparkles, Target, Zap, ArrowRight, Loader2, CheckCircle2, ChevronRight, MessageSquare, Star, AlertCircle } from 'lucide-react';
-import { generateKnowledgeTree } from '../../services/gemini';
+import { generateKnowledgeTree, verifyTask } from '../../services/gemini';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { KnowledgeTree, KnowledgeNode } from '../../types';
@@ -21,12 +21,14 @@ export const GeniusLab: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [floatingXP, setFloatingXP] = useState<{ id: number; amount: number }[]>([]);
+  const [challengeAnswer, setChallengeAnswer] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyFeedback, setVerifyFeedback] = useState<{ isCorrect: boolean; text: string } | null>(null);
 
   const addXPAction = async (amount: number) => {
     if (!profile || !user) return;
     const newXP = (profile.xp || 0) + amount;
     
-    // Level calc: simplified (sqrt of XP / 10)
     const newLevel = Math.floor(Math.sqrt(newXP) / 5) + 1;
     
     await updateProfileData({ 
@@ -34,7 +36,6 @@ export const GeniusLab: React.FC = () => {
       level: newLevel > profile.level ? newLevel : profile.level 
     });
 
-    // Visual feedback
     const id = Date.now();
     setFloatingXP(prev => [...prev, { id, amount }]);
     setTimeout(() => {
@@ -47,12 +48,13 @@ export const GeniusLab: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setDebugInfo(null);
+    setVerifyFeedback(null);
+    setChallengeAnswer('');
     try {
       const generatedTree = await generateKnowledgeTree(topic, profile);
       if (generatedTree && Array.isArray(generatedTree.nodes) && generatedTree.nodes.length > 0) {
         setTree(generatedTree);
         setSelectedNode(generatedTree.nodes[0]);
-        // Award XP for starting research
         addXPAction(25);
       } else {
         throw new Error("Invalid structure: AI returned empty tree.");
@@ -61,30 +63,44 @@ export const GeniusLab: React.FC = () => {
       console.error("Genius Lab Error:", err);
       const msg = err instanceof Error ? err.message : "Failed to initialize lab";
       setError(msg);
-      
-      if (msg.includes("API Key")) {
-        try {
-          const resp = await fetch('/api/debug');
-          const data = await resp.json();
-          setDebugInfo(data);
-        } catch (e) {
-          console.error("Failed to fetch debug info");
-        }
-      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleNodeClick = (node: KnowledgeNode) => {
+    setSelectedNode(node);
+    setChallengeAnswer('');
+    setVerifyFeedback(null);
+  };
+
   const handleCompleteChallenge = async () => {
-    if (!selectedNode || !selectedNode.points) return;
-    await addXPAction(selectedNode.points);
-    // Mark as completed locally
-    if (tree) {
-      setTree({
-        ...tree,
-        nodes: tree.nodes.map(n => n.id === selectedNode.id ? { ...n, completed: true } : n)
-      });
+    if (!selectedNode || !selectedNode.points || !challengeAnswer.trim() || !profile) return;
+    
+    setIsVerifying(true);
+    setVerifyFeedback(null);
+    
+    try {
+      const result = await verifyTask(selectedNode, challengeAnswer, profile);
+      
+      setVerifyFeedback({ isCorrect: result.isCorrect, text: result.feedback });
+      
+      if (result.isCorrect) {
+        const totalAward = (selectedNode.points || 0) + (result.bonusXP || 0);
+        await addXPAction(totalAward);
+        
+        if (tree) {
+          setTree({
+            ...tree,
+            nodes: tree.nodes.map(n => n.id === selectedNode.id ? { ...n, completed: true } : n)
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Verification failed:", err);
+      setError("AI Verification failed. Try again.");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -350,14 +366,14 @@ export const GeniusLab: React.FC = () => {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => {
-                setSelectedNode(node);
+                handleNodeClick(node);
                 setShowChat(false);
               }}
               className={`
-                w-full p-5 rounded-2xl border text-left transition-all relative overflow-hidden group
+                w-full p-5 rounded-3xl border text-left transition-all relative overflow-hidden group shadow-lg
                 ${selectedNode?.id === node.id 
-                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' 
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}
+                  ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-600/30' 
+                  : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/10'}
               `}
             >
               <div className="flex items-center gap-4 relative z-10">
@@ -455,13 +471,49 @@ export const GeniusLab: React.FC = () => {
                         <p className="text-white font-bold leading-relaxed">
                           {selectedNode.challenge}
                         </p>
-                        <Button 
-                          onClick={handleCompleteChallenge}
-                          disabled={selectedNode.completed}
-                          className={`w-full gap-2 ${selectedNode.completed ? 'bg-gray-500 opacity-50' : 'bg-emerald-600 hover:bg-emerald-500'}`}
-                        >
-                          <CheckCircle2 className="w-5 h-5" /> {selectedNode.completed ? 'CHALLENGE COMPLETED' : t.completeChallenge}
-                        </Button>
+
+                        {!selectedNode.completed && (
+                          <div className="space-y-4">
+                            <textarea
+                              value={challengeAnswer}
+                              onChange={(e) => setChallengeAnswer(e.target.value)}
+                              placeholder="Type your scientific answer or proof here..."
+                              className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 transition-colors custom-scrollbar resize-none"
+                            />
+                            
+                            {verifyFeedback && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`p-4 rounded-2xl text-xs font-medium border ${
+                                  verifyFeedback.isCorrect 
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                    : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                }`}
+                              >
+                                {verifyFeedback.text}
+                              </motion.div>
+                            )}
+
+                            <Button 
+                              onClick={handleCompleteChallenge}
+                              disabled={isVerifying || !challengeAnswer.trim()}
+                              className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                            >
+                              {isVerifying ? (
+                                <><Loader2 className="w-5 h-5 animate-spin" /> VERIFYING BY AI...</>
+                              ) : (
+                                <><CheckCircle2 className="w-5 h-5" /> SUBMIT FOR VERIFICATION</>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+
+                        {selectedNode.completed && (
+                          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest">
+                            <CheckCircle2 className="w-5 h-5" /> NODE MASTERED
+                          </div>
+                        )}
                       </div>
  
                       <Button 
