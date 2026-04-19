@@ -477,8 +477,8 @@ export const GeniusLab: React.FC = () => {
                             <textarea
                               value={challengeAnswer}
                               onChange={(e) => setChallengeAnswer(e.target.value)}
-                              placeholder="Type your scientific answer or proof here..."
-                              className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 transition-colors custom-scrollbar resize-none"
+                              placeholder="Enter your final answer here (e.g., '42', 'NaCl', 'F=ma'). Be precise!"
+                              className="w-full h-24 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 transition-colors custom-scrollbar resize-none font-medium"
                             />
                             
                             {verifyFeedback && (

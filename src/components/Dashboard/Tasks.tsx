@@ -46,9 +46,12 @@ export const Tasks: React.FC = () => {
     setIsGenerating(true);
 
     const templates = [
-      { title: "Explain Momentum", desc: "Explain how momentum works in football using metaphors.", diff: "Medium", xp: 50 },
-      { title: "Solve for X", desc: "Create a real-world scenario where you need to solve an algebraic equation.", diff: "Easy", xp: 30 },
-      { title: "Socratic Logic", desc: "Identify a logical fallacy in a common argument about climate change.", diff: "Challenge", xp: 100 },
+      { title: "Kinetics: Velocity", desc: "Calculate the velocity (v) if an object travels 150 meters (d) in 30 seconds (t). Formula: v = d / t", diff: "Easy", xp: 30 },
+      { title: "Chemistry: Symbols", desc: "What is the chemical symbol for the element Gold? (Provide a 2-letter answer)", diff: "Easy", xp: 30 },
+      { title: "Algebra: Solve for X", desc: "Solve the linear equation for x: 3x + 12 = 30. Provide only the numeric result.", diff: "Medium", xp: 60 },
+      { title: "Physics: Force", desc: "Calculate the net force (F) on a 15kg mass (m) accelerating at 4 m/s² (a). Formula: F = m * a", diff: "Medium", xp: 70 },
+      { title: "Logic: Series", desc: "Complete the mathematical sequence: 2, 4, 8, 16, ? What is the next number?", diff: "Medium", xp: 50 },
+      { title: "Entropy: Logic", desc: "In a closed system, does entropy tend to increase or decrease? (Answer: Increase or Decrease)", diff: "Challenge", xp: 120 },
     ];
 
     const template = templates[Math.floor(Math.random() * templates.length)];
@@ -179,8 +182,8 @@ export const Tasks: React.FC = () => {
                   <textarea
                     value={taskAnswers[task.id] || ''}
                     onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                    placeholder="Provide your scientific proof or logical explanation here..."
-                    className="w-full h-24 bg-[var(--input)] border border-[var(--border)] rounded-2xl p-4 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-indigo-500/50 transition-colors custom-scrollbar resize-none font-medium"
+                    placeholder="Enter the result, formula, or specific term here..."
+                    className="w-full h-20 bg-[var(--input)] border border-[var(--border)] rounded-2xl p-4 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-indigo-500/50 transition-colors custom-scrollbar resize-none font-bold"
                   />
                   
                   {taskFeedback[task.id] && (

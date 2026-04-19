@@ -72,16 +72,27 @@ app.post("/api/ai/tree", async (req, res) => {
     const prompt = `GENERATE A SCIENTIFIC KNOWLEDGE TREE FOR: "${topic}". 
     YOU MUST USE METAPHORS EXCLUSIVELY RELATED TO: ${interests.join(', ')}.
     
-    CRITICAL: 
-    1. For each concept, the 'metaphor' field MUST be a vivid comparison to the student's interests. 
-    2. The 'challenge' field MUST be a logical scientific task (e.g., "Calculate X", "Explain Y via Z").
-    3. Add a 'points' field (integer 50-200) for each node.
+    CRITICAL INSTRUCTIONS: 
+    1. CONCEPTION: Each concept must have a vivid metaphor from the interests.
+    2. THE CHALLENGE: This is now a SPECIFIC SCIENTIFIC PROBLEM or EQUATION. 
+       - It must have a CLEAR, SINGLE correct answer (numeric value or specific scientific term).
+       - Examples: "Calculate the force if m=10, a=5", "What is the chemical symbol for Helium?", "Solve for x in 2x+5=15".
+       - DO NOT ask for "explanations". Ask for "results".
+    3. Add a 'points' field (integer 50-200).
 
     Return ONLY JSON:
     {
       "topic": "${topic}",
       "nodes": [
-        { "id": "n1", "label": "Name", "description": "Science", "metaphor": "Metaphor", "challenge": "Task", "points": 100, "type": "core" }
+        { 
+          "id": "n1", 
+          "label": "Concept Name", 
+          "description": "Scientific context", 
+          "metaphor": "Vivid interest-based metaphor", 
+          "challenge": "The specific problem to solve", 
+          "points": 100, 
+          "type": "core" 
+        }
       ],
       "connections": [{ "from": "n1", "to": "n2" }]
     }`;
@@ -106,20 +117,22 @@ app.post("/api/ai/verify", async (req, res) => {
     
     if (!answer) return res.status(400).json({ error: "Answer is required" });
 
-    const prompt = `SCIENTIFIC VERIFICATION PROTOCOL
+    const prompt = `SCIENTIFIC VERIFICATION PROTOCOL (OBJECTIVE MODE)
     
-    TASK: ${task.label || task.title}
-    CHALLENGE: ${task.challenge || task.description}
+    PROBLEM: ${task.challenge || task.description}
     STUDENT ANSWER: "${answer}"
-    INTERESTS: ${profile?.interests?.join(', ')}
     
-    Determine if the answer is scientifically correct and logicially sound given the challenge.
+    YOUR ROLE:
+    1. Solve the problem yourself first.
+    2. Compare the student's answer to the true scientific result.
+    3. Be STRICT. If the logic or the numeric value is wrong, set isCorrect to false.
+    4. If the student clearly guessed or typed gibberish, mark as false.
     
     Return ONLY JSON:
     {
       "isCorrect": boolean,
-      "feedback": "1-2 sentences of explanation",
-      "bonusXP": number (0-50 based on depth)
+      "feedback": "Concise scientific feedback (1 sentence)",
+      "bonusXP": number (0-20, only for perfect and elegant solutions)
     }`;
 
     const response = await ai.models.generateContent({
