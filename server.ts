@@ -123,15 +123,15 @@ app.post("/api/ai/verify", async (req, res) => {
     STUDENT ANSWER: "${answer}"
     
     YOUR ROLE:
-    1. Solve the problem yourself first.
-    2. Compare the student's answer to the true scientific result.
-    3. Be STRICT. If the logic or the numeric value is wrong, set isCorrect to false.
-    4. If the student clearly guessed or typed gibberish, mark as false.
+    1. Solve the problem yourself with absolute precision.
+    2. Check the student's numerical value AND units (if applicable).
+    3. Allow for minor rounding differences (e.g., 3.14 vs 3.14159) but be strict on the core logic.
+    4. Reject vague explanations. Expect the specific RESULT.
     
     Return ONLY JSON:
     {
       "isCorrect": boolean,
-      "feedback": "Concise scientific feedback (1 sentence)",
+      "feedback": "Concise scientific feedback (1 sentence). If wrong, briefly mention why.",
       "bonusXP": number (0-20, only for perfect and elegant solutions)
     }`;
 

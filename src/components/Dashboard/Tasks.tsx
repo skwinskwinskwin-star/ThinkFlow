@@ -5,10 +5,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Task } from '../../types';
 import { db } from '../../lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 import { verifyTask } from '../../services/gemini';
+import { Trash2 } from 'lucide-react';
 
 export const Tasks: React.FC = () => {
   const { user, profile } = useAuth();
@@ -16,6 +17,7 @@ export const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [taskAnswers, setTaskAnswers] = useState<Record<string, string>>({});
   const [verifyingTaskId, setVerifyingTaskId] = useState<string | null>(null);
   const [taskFeedback, setTaskFeedback] = useState<Record<string, { isCorrect: boolean; text: string }>>({});
@@ -41,17 +43,33 @@ export const Tasks: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
+  const clearAllTasks = async () => {
+    if (!user || !window.confirm('Delete all tasks and start fresh?')) return;
+    setIsClearing(true);
+    try {
+      const q = query(collection(db, 'tasks'), where('userId', '==', user.uid));
+      const snapshot = await getDocs(q);
+      const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'tasks', d.id)));
+      await Promise.all(deletePromises);
+    } catch (error) {
+      console.error("Clear tasks error:", error);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const generateTask = async () => {
     if (!user || !profile) return;
     setIsGenerating(true);
 
     const templates = [
-      { title: "Kinetics: Velocity", desc: "Calculate the velocity (v) if an object travels 150 meters (d) in 30 seconds (t). Formula: v = d / t", diff: "Easy", xp: 30 },
-      { title: "Chemistry: Symbols", desc: "What is the chemical symbol for the element Gold? (Provide a 2-letter answer)", diff: "Easy", xp: 30 },
-      { title: "Algebra: Solve for X", desc: "Solve the linear equation for x: 3x + 12 = 30. Provide only the numeric result.", diff: "Medium", xp: 60 },
-      { title: "Physics: Force", desc: "Calculate the net force (F) on a 15kg mass (m) accelerating at 4 m/s² (a). Formula: F = m * a", diff: "Medium", xp: 70 },
-      { title: "Logic: Series", desc: "Complete the mathematical sequence: 2, 4, 8, 16, ? What is the next number?", diff: "Medium", xp: 50 },
-      { title: "Entropy: Logic", desc: "In a closed system, does entropy tend to increase or decrease? (Answer: Increase or Decrease)", diff: "Challenge", xp: 120 },
+      { title: "Kinetics: Velocity", desc: "Calculate the velocity (v) if an object travels 150m (d) in 30s (t). Formula: v=d/t. Result in m/s.", diff: "Easy", xp: 30 },
+      { title: "Algebra: Simplify", desc: "Solve for x: 3x + 15 = 45. Give the numeric value.", diff: "Easy", xp: 35 },
+      { title: "Ohm's Law", desc: "A circuit has 10V (V) and 2Ω resistance (R). Calculate the current (I). Formula: I=V/R. Result in Amperes.", diff: "Medium", xp: 60 },
+      { title: "Geometry: Area", desc: "Calculate the area of a circle with radius r=5m. Use π=3.14. Formula: A=πr². Result in m².", diff: "Medium", xp: 65 },
+      { title: "Chemistry: Molar Mass", desc: "Calculate the molar mass of H₂O. (H=1, O=16). Give the total g/mol.", diff: "Medium", xp: 70 },
+      { title: "Logic: Sequence", desc: "Find the missing number: 1, 1, 2, 3, 5, 8, ?. (Fibonacci sequence)", diff: "Medium", xp: 50 },
+      { title: "Physics: Power", desc: "Calculate Power (P) if Work (W) is 500J and time (t) is 10s. Formula: P=W/t. Result in Watts.", diff: "Challenge", xp: 125 },
     ];
 
     const template = templates[Math.floor(Math.random() * templates.length)];
@@ -129,14 +147,27 @@ export const Tasks: React.FC = () => {
             Personalized challenges to grow your logic.
           </p>
         </div>
-        <Button 
-          onClick={generateTask} 
-          disabled={isGenerating}
-          className="gap-3 h-16 px-8 rounded-3xl"
-        >
-          {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-          Generate New Task
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {tasks.length > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={clearAllTasks}
+              disabled={isClearing}
+              className="px-6 h-16 rounded-3xl border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+            >
+              {isClearing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+              <span className="ml-2 font-black uppercase text-[10px] tracking-widest">Clear All</span>
+            </Button>
+          )}
+          <Button 
+            onClick={generateTask} 
+            disabled={isGenerating}
+            className="gap-3 h-16 px-8 rounded-3xl bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+          >
+            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+            <span className="font-black uppercase text-[10px] tracking-widest">Generate New Task</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
