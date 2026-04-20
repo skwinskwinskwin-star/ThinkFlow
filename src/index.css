@@ -74,3 +74,8 @@
 .drop-shadow-glow {
   filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.8));
 }
+
+.stroke-text {
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.3);
+  color: transparent;
+}

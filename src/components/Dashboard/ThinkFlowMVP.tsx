@@ -4,11 +4,13 @@ import { motion } from 'framer-motion';
 import { Brain, Sparkles, Send, Loader2, Target } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getPersonalizedExplanation } from '../../services/gemini';
+import { useLanguage } from '../../context/LanguageContext';
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 import { Todos } from '../Todos';
 
 export const ThinkFlowMVP: React.FC = () => {
+  const { t } = useLanguage();
   const [topic, setTopic] = useState('');
   const [interests, setInterests] = useState('');
   const [explanation, setExplanation] = useState('');
@@ -56,10 +58,10 @@ export const ThinkFlowMVP: React.FC = () => {
         </motion.div>
         
         <h2 className="text-6xl font-black uppercase tracking-tighter text-[var(--text)]">
-          ThinkFlow <span className="text-indigo-600">Genius</span>
+          {t.thinkFlow} <span className="text-indigo-600">Genius</span>
         </h2>
         <p className="text-[var(--muted)] font-medium max-w-md mx-auto">
-          Unleash your cognitive potential with AI-driven personalized learning.
+          {t.unleashPotential}
         </p>
       </div>
 
@@ -71,7 +73,7 @@ export const ThinkFlowMVP: React.FC = () => {
           <Card className="p-8 rounded-[3rem] border border-[var(--border)] space-y-8 bg-[var(--card)] shadow-2xl h-full">
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] ml-2">Topic to Learn</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] ml-2">{t.topicToLearn}</label>
                 <input 
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
@@ -81,7 +83,7 @@ export const ThinkFlowMVP: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] ml-2">Your Interests (comma separated)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] ml-2">{t.yourInterests}</label>
                 <input 
                   value={interests}
                   onChange={e => setInterests(e.target.value)}
@@ -96,7 +98,7 @@ export const ThinkFlowMVP: React.FC = () => {
                 className="w-full h-16 rounded-2xl text-lg gap-3 shadow-xl shadow-indigo-500/20"
               >
                 {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6" />}
-                Generate Explanation
+                {t.generateExplanation}
               </Button>
             </div>
           </Card>
@@ -111,14 +113,14 @@ export const ThinkFlowMVP: React.FC = () => {
               {!explanation && !isLoading ? (
                 <div className="h-full flex flex-col items-center justify-center text-center opacity-30 space-y-4">
                   <Send className="w-12 h-12" />
-                  <p className="text-xs font-black uppercase tracking-widest">Waiting for input...</p>
+                  <p className="text-xs font-black uppercase tracking-widest">{t.waitingInput}</p>
                 </div>
               ) : isLoading ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
                   <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white animate-pulse">
                     <Brain className="w-8 h-8" />
                   </div>
-                  <p className="text-xs font-black uppercase tracking-widest text-indigo-500 animate-pulse">AI is thinking...</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-indigo-500 animate-pulse">{t.aiThinking}</p>
                 </div>
               ) : (
                 <div className="prose dark:prose-invert prose-sm max-w-none animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -136,8 +138,8 @@ export const ThinkFlowMVP: React.FC = () => {
             <Target className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-2xl font-black uppercase tracking-tight text-[var(--text)]">Learning Goals</h3>
-            <p className="text-[var(--muted)] text-[10px] font-black uppercase tracking-widest">Powered by Supabase Realtime</p>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-[var(--text)]">{t.learningGoals}</h3>
+            <p className="text-[var(--muted)] text-[10px] font-black uppercase tracking-widest">Powered by Gemini AI Engine</p>
           </div>
         </div>
         <Todos />

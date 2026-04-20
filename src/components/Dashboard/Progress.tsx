@@ -39,10 +39,10 @@ export const Progress: React.FC = () => {
   const rank = Math.max(1, 450 - Math.floor(profile.xp / 100));
 
   const stats = [
-    { label: "Total XP", value: profile.xp.toLocaleString(), icon: Zap, color: "text-indigo-500" },
-    { label: "Current Level", value: profile.level, icon: Trophy, color: "text-yellow-500" },
-    { label: "Tasks Done", value: completedTasksCount !== null ? completedTasksCount : "...", icon: Target, color: "text-emerald-500" },
-    { label: "Global Rank", value: `#${rank}`, icon: Star, color: "text-purple-500" },
+    { label: t.totalXP, value: profile.xp.toLocaleString(), icon: Zap, color: "text-indigo-500" },
+    { label: t.currentLevelLabel, value: profile.level, icon: Trophy, color: "text-yellow-500" },
+    { label: t.tasksDone, value: completedTasksCount !== null ? completedTasksCount : "...", icon: Target, color: "text-emerald-500" },
+    { label: t.globalRank, value: `#${rank}`, icon: Star, color: "text-purple-500" },
   ];
 
   return (
@@ -53,7 +53,7 @@ export const Progress: React.FC = () => {
             {t.progress}
           </h2>
           <p className="text-[var(--muted)] font-medium mt-2">
-            Your intellectual growth journey tracked in real-time.
+            {t.progressSub}
           </p>
         </div>
         <div className="w-20 h-20 bg-indigo-600/10 rounded-[2rem] flex items-center justify-center text-indigo-500">
@@ -79,12 +79,12 @@ export const Progress: React.FC = () => {
         <div className="relative z-10 space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <h3 className="text-4xl font-black uppercase tracking-tighter text-[var(--text)]">Level {profile.level}</h3>
-              <p className="text-[var(--muted)] font-medium">Next Level: {profile.level + 1}</p>
+              <h3 className="text-4xl font-black uppercase tracking-tighter text-[var(--text)]">{t.levelLabel} {profile.level}</h3>
+              <p className="text-[var(--muted)] font-medium">{t.nextLevel}: {profile.level + 1}</p>
             </div>
             <div className="text-right">
               <p className="text-5xl font-black text-indigo-500 font-mono tracking-tighter">{profile.xp % 1000} / 1000</p>
-              <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest mt-1">XP to next level</p>
+              <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest mt-1">{t.xpNextLevel}</p>
             </div>
           </div>
 
@@ -101,8 +101,8 @@ export const Progress: React.FC = () => {
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-black uppercase text-[var(--text)]">Growth Rate</p>
-                <p className="text-[var(--muted)] text-[10px] font-bold">+{Math.floor((profile.xp % 100) / 10) + 2}% this week</p>
+                <p className="text-xs font-black uppercase text-[var(--text)]">{t.growthRate}</p>
+                <p className="text-[var(--muted)] text-[10px] font-bold">+{Math.floor((profile.xp % 100) / 10) + 2}% {t.thisWeek}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -110,8 +110,8 @@ export const Progress: React.FC = () => {
                 <Zap className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-black uppercase text-[var(--text)]">Daily Streak</p>
-                <p className="text-[var(--muted)] text-[10px] font-bold">{Math.min(30, (profile.level * 2) + (profile.xp % 3))} Days</p>
+                <p className="text-xs font-black uppercase text-[var(--text)]">{t.dailyStreak}</p>
+                <p className="text-[var(--muted)] text-[10px] font-bold">{Math.min(30, (profile.level * 2) + (profile.xp % 3))} {t.days}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -119,7 +119,7 @@ export const Progress: React.FC = () => {
                 <Target className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-black uppercase text-[var(--text)]">Focus Score</p>
+                <p className="text-xs font-black uppercase text-[var(--text)]">{t.focusScore}</p>
                 <p className="text-[var(--muted)] text-[10px] font-bold">{70 + (profile.xp % 25)}/100</p>
               </div>
             </div>

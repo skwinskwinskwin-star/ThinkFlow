@@ -239,7 +239,7 @@ export const GeniusLab: React.FC = () => {
               {profile?.geniusMode && (
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
                   <Sparkles className="w-4 h-4" />
-                  GENIUS MODE ACTIVE
+                  {t.geniusModeActive}
                 </div>
               )}
             </div>
@@ -293,7 +293,7 @@ export const GeniusLab: React.FC = () => {
                   <Zap className="w-6 h-6" />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-white text-xl uppercase tracking-tighter font-black">Системный сбой</p>
+                  <p className="text-white text-xl uppercase tracking-tighter font-black">{t.systemFailure}</p>
                   <p className="opacity-80 font-medium leading-relaxed">{error}</p>
                   {debugInfo && (
                     <div className="mt-4 p-4 bg-black/40 rounded-xl text-[10px] font-mono text-indigo-300 border border-indigo-500/30">
@@ -311,7 +311,7 @@ export const GeniusLab: React.FC = () => {
                 onClick={() => window.location.reload()}
                 className="w-full bg-white text-black hover:bg-gray-200 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px]"
               >
-                Попробовать снова
+                {t.tryAgain}
               </Button>
             </motion.div>
           )}
@@ -464,7 +464,7 @@ export const GeniusLab: React.FC = () => {
                           </div>
                           {selectedNode.points && (
                             <div className="px-3 py-1 rounded-full bg-emerald-400/10 text-emerald-400 text-[10px] font-black tracking-widest border border-emerald-400/20">
-                              REWARD: +{selectedNode.points} XP
+                              {t.rewardLabel}: +{selectedNode.points} XP
                             </div>
                           )}
                         </div>
@@ -477,7 +477,7 @@ export const GeniusLab: React.FC = () => {
                             <textarea
                               value={challengeAnswer}
                               onChange={(e) => setChallengeAnswer(e.target.value)}
-                              placeholder="Enter your final answer here (e.g., '42', 'NaCl', 'F=ma'). Be precise!"
+                              placeholder={t.geniusAnswerPlaceholder}
                               className="w-full h-24 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 transition-colors custom-scrollbar resize-none font-medium"
                             />
                             
@@ -501,9 +501,9 @@ export const GeniusLab: React.FC = () => {
                               className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                             >
                               {isVerifying ? (
-                                <><Loader2 className="w-5 h-5 animate-spin" /> VERIFYING BY AI...</>
+                                <><Loader2 className="w-5 h-5 animate-spin" /> {t.verifyingAI}</>
                               ) : (
-                                <><CheckCircle2 className="w-5 h-5" /> SUBMIT FOR VERIFICATION</>
+                                <><CheckCircle2 className="w-5 h-5" /> {t.submitVerification}</>
                               )}
                             </Button>
                           </div>
@@ -511,7 +511,7 @@ export const GeniusLab: React.FC = () => {
 
                         {selectedNode.completed && (
                           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest">
-                            <CheckCircle2 className="w-5 h-5" /> NODE MASTERED
+                            <CheckCircle2 className="w-5 h-5" /> {t.nodeMastered}
                           </div>
                         )}
                       </div>

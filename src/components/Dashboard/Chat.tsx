@@ -164,7 +164,7 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
             </div>
             <div className="space-y-3">
               <h3 className="text-3xl font-black uppercase tracking-tighter text-[var(--text)]">
-                ThinkFlow {type}
+                {t.thinkFlow} {type}
               </h3>
               <p className="text-[11px] font-black uppercase tracking-[0.3em] max-w-md mx-auto leading-relaxed text-[var(--muted)]">
                 {type === 'teacher' ? t.feat1 : type === 'coach' ? t.feat2 : t.feat3}
@@ -246,7 +246,7 @@ export const Chat: React.FC<ChatProps> = ({ type, sessionId: initialSessionId })
                   sendMessage();
                 }
               }} 
-              placeholder="Type your thought and wait for AI..." 
+              placeholder={t.chatPlaceholder} 
               className={`
                 w-full bg-[var(--input)] border border-[var(--border)] 
                 rounded-[2rem] p-5 pr-16 outline-none focus:border-indigo-500 transition-all 

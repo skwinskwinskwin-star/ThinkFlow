@@ -25,6 +25,7 @@ import { Loader2 } from 'lucide-react';
 const App: React.FC = () => {
   const { user, profile, loading, isAuthReady } = useAuth();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const [currentView, setCurrentView] = useState('genius_lab');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -46,7 +47,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-3 text-[var(--muted)] font-black uppercase tracking-widest text-xs">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Initializing ThinkFlow
+            {t.initializing}
           </div>
         </div>
       </div>
@@ -69,7 +70,7 @@ const App: React.FC = () => {
       <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg)]">
         <div className="flex flex-col items-center gap-6">
           <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-          <p className="text-[var(--muted)] font-black uppercase tracking-widest text-xs">Setting up your profile...</p>
+          <p className="text-[var(--muted)] font-black uppercase tracking-widest text-xs">{t.settingUpProfile}</p>
         </div>
       </div>
     );

@@ -159,7 +159,7 @@ export const Tasks: React.FC = () => {
             {t.tasks}
           </h2>
           <p className="text-[var(--muted)] font-medium mt-2">
-            Personalized challenges to grow your logic.
+            {t.tasksSub}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -171,7 +171,7 @@ export const Tasks: React.FC = () => {
               className="px-6 h-16 rounded-3xl border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
             >
               {isClearing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
-              <span className="ml-2 font-black uppercase text-[10px] tracking-widest">Clear All</span>
+              <span className="ml-2 font-black uppercase text-[10px] tracking-widest">{t.clearAll}</span>
             </Button>
           )}
           <Button 
@@ -180,7 +180,7 @@ export const Tasks: React.FC = () => {
             className="gap-3 h-16 px-8 rounded-3xl bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)]"
           >
             {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-            <span className="font-black uppercase text-[10px] tracking-widest">Generate New Task</span>
+            <span className="font-black uppercase text-[10px] tracking-widest">{t.generateNewTask}</span>
           </Button>
         </div>
       </div>
@@ -189,7 +189,7 @@ export const Tasks: React.FC = () => {
         {tasks.length === 0 ? (
           <div className="col-span-full py-20 text-center opacity-30">
             <Zap className="w-20 h-20 mx-auto mb-6" />
-            <p className="text-xl font-black uppercase tracking-widest">No tasks yet. Generate one!</p>
+            <p className="text-xl font-black uppercase tracking-widest">{t.noTasks}</p>
           </div>
         ) : (
           tasks.map((task) => (
@@ -228,7 +228,7 @@ export const Tasks: React.FC = () => {
                   <textarea
                     value={taskAnswers[task.id] || ''}
                     onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                    placeholder="Enter the result, formula, or specific term here..."
+                    placeholder={t.taskAnswerPlaceholder}
                     className="w-full h-20 bg-[var(--input)] border border-[var(--border)] rounded-2xl p-4 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-indigo-500/50 transition-colors custom-scrollbar resize-none font-bold"
                   />
                   
@@ -250,7 +250,7 @@ export const Tasks: React.FC = () => {
                     ) : (
                       <CheckCircle2 className="w-5 h-5" />
                     )}
-                    {verifyingTaskId === task.id ? 'VERIFYING...' : 'SUBMIT & VERIFY'}
+                    {verifyingTaskId === task.id ? t.verifying : t.submitVerify}
                   </Button>
                 </div>
               )}

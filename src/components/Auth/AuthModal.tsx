@@ -132,7 +132,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </h2>
                 <div className="flex items-center gap-2 text-indigo-400 font-black uppercase text-[9px] tracking-widest mt-1">
                   <Sparkles className="w-3 h-3" />
-                  Genius Ecosystem
+                  {t.geniusEcosystem}
                 </div>
               </div>
             </div>
@@ -153,7 +153,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       name="name" 
                       type="text" 
                       required 
-                      placeholder="Enter your full name"
+                      placeholder={t.name}
                       className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 outline-none focus:border-indigo-500 transition-all text-white font-bold" 
                     />
                   </motion.div>
@@ -162,26 +162,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase text-white/40 tracking-widest flex items-center gap-2">
-                  <Mail className="w-3 h-3" /> Email Address
+                  <Mail className="w-3 h-3" /> {t.emailAddress}
                 </label>
                 <input 
                   name="email" 
                   type="email" 
                   required 
-                  placeholder="Enter your email"
+                  placeholder={t.emailAddress}
                   className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 outline-none focus:border-indigo-500 transition-all text-white font-bold" 
                 />
               </div>
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase text-white/40 tracking-widest flex items-center gap-2">
-                  <Lock className="w-3 h-3" /> Password
+                  <Lock className="w-3 h-3" /> {t.password}
                 </label>
                 <input 
                   name="password" 
                   type="password" 
                   required 
-                  placeholder="Enter your password"
+                  placeholder={t.password}
                   className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 outline-none focus:border-indigo-500 transition-all text-white font-bold" 
                 />
               </div>
@@ -235,7 +235,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                     <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
-                  {language === 'ru' ? 'ВОЙТИ ЧЕРЕЗ GOOGLE' : 'SIGN IN WITH GOOGLE'}
+                  {t.googleSignIn}
                 </Button>
 
                 <Button 
@@ -245,14 +245,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   className="h-16 rounded-2xl text-lg gap-3 bg-emerald-600 hover:bg-emerald-700 shadow-2xl shadow-emerald-500/20 w-full border-none text-white font-black"
                 >
                   <Zap className="w-5 h-5" />
-                  {language === 'ru' ? 'ДЕМО РЕЖИМ' : 'DEMO MODE'}
+                  {t.demoMode}
                 </Button>
               </div>
             </form>
 
             <div className="mt-12 pt-10 border-t border-white/10 text-center">
               <p className="text-white/40 font-medium mb-4">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                {isLogin ? t.noAccount : t.haveAccount}
               </p>
               <button 
                 onClick={() => setIsLogin(!isLogin)}
@@ -264,7 +264,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             <div className="mt-10 flex items-center justify-center gap-2 text-white/20">
               <ShieldCheck className="w-4 h-4" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Quantum Encryption Active</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">{t.encryptionActive}</span>
             </div>
           </div>
         </Card>
