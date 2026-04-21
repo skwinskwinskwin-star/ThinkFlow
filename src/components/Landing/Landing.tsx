@@ -251,12 +251,7 @@ export const Landing: React.FC<LandingProps> = ({ onGetStarted }) => {
           </div>
         </motion.div>
 
-        {/* Watermark background text */}
-        <div className="absolute bottom-10 left-10 opacity-5 pointer-events-none hidden lg:block">
-          <div className="text-[20vh] font-black uppercase tracking-tighter leading-none select-none">
-            THINKFLOW.SYSTEM
-          </div>
-        </div>
+        {/* Watermark background text removed */}
       </section>
 
       {/* Marquee Ticker */}

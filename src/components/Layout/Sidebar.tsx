@@ -19,7 +19,8 @@ import {
   BarChart3,
   X,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -40,11 +41,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, currentView,
 
   const menuItems = [
     { id: 'genius_lab', label: t.geniusLab, icon: Brain },
+    { id: 'community', label: t.community, icon: Users },
+    { id: 'messages', label: t.messages, icon: MessageSquare },
     { id: 'tasks', label: t.tasks, icon: LayoutGrid },
     { id: 'progress', label: t.progress, icon: BarChart3 },
     { id: 'articles', label: t.articles, icon: FileText },
     { id: 'tips', label: t.tips, icon: Lightbulb },
-    { id: 'quotes', label: t.quotes, icon: Quote },
     { id: 'reviews', label: t.reviews, icon: MessageCircle },
     { id: 'leaderboard', label: t.leaderboard, icon: Trophy },
     { id: 'profile', label: t.profile, icon: User },

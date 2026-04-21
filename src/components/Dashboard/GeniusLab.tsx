@@ -173,18 +173,18 @@ export const GeniusLab: React.FC = () => {
 
           <div className="space-y-8 font-mono text-center relative z-10">
             <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">Neural Mapping...</h2>
-              <p className="text-gray-500 text-xs">SYNTHESIZING SCIENTIFIC NODE: <span className="text-emerald-400">{topic}</span></p>
+              <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">{t.constructingKnowledge}</h2>
+              <p className="text-gray-500 text-xs">{t.synthesizingNode} <span className="text-emerald-400">{topic}</span></p>
             </div>
             
             <div className="max-w-md mx-auto space-y-3">
               <div className="flex justify-between text-[10px] text-indigo-400 font-bold">
-                <span>INTEL_PROTO_v7.0</span>
+                <span>{t.systemOptimizing}</span>
                 <motion.span
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  SYSTEM_OPTIMIZING
+                  ACTIVE
                 </motion.span>
               </div>
               <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
@@ -199,10 +199,10 @@ export const GeniusLab: React.FC = () => {
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Cloud Search', status: 'OK' },
-                { label: 'Context Logic', status: 'MAP' },
-                { label: 'Neural Mix', status: 'RUN' },
-                { label: 'Metaphor Sync', status: 'READY' }
+                { label: t.deepUnderstanding, status: '...' },
+                { label: t.personalizedMetaphors, status: '...' },
+                { label: t.skillMastery, status: '...' },
+                { label: t.knowledgeMap, status: '...' }
               ].map((step, idx) => (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}

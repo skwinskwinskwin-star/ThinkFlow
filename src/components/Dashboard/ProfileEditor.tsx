@@ -17,6 +17,18 @@ export const ProfileEditor: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState<string[]>(profile?.interests || []);
+  const [photoURL, setPhotoURL] = useState<string | undefined>(profile?.photoURL);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoURL(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests(prev => 
@@ -38,7 +50,8 @@ export const ProfileEditor: React.FC = () => {
       bio: fd.get('bio') as string,
       studentClass: fd.get('class') as StudentClass,
       interests: selectedInterests,
-      age: parseInt(fd.get('age') as string) || profile.age
+      age: parseInt(fd.get('age') as string) || profile.age,
+      photoURL: photoURL
     };
 
     try {
@@ -90,12 +103,29 @@ export const ProfileEditor: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           className="relative group"
         >
-          <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl overflow-hidden">
-            {profile.photoURL ? <img src={profile.photoURL} alt={profile.name} className="w-full h-full object-cover" /> : profile.name[0]}
+          <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl overflow-hidden relative">
+            {photoURL ? (
+              <img src={photoURL} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              profile.name[0]
+            )}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Camera className="w-8 h-8 text-white" />
+            </div>
           </div>
-          <button className="absolute -bottom-2 -right-2 bg-[var(--card)] p-3 rounded-xl shadow-xl border border-[var(--border)] group-hover:scale-110 transition-transform">
+          <input 
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            id="avatar-upload"
+            onChange={handlePhotoUpload}
+          />
+          <label 
+            htmlFor="avatar-upload"
+            className="absolute -bottom-2 -right-2 bg-[var(--card)] p-3 rounded-xl shadow-xl border border-[var(--border)] group-hover:scale-110 transition-transform cursor-pointer"
+          >
             <Camera className="w-4 h-4 text-indigo-500" />
-          </button>
+          </label>
         </motion.div>
       </motion.div>
 

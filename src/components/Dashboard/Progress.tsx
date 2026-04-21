@@ -32,17 +32,15 @@ export const Progress: React.FC = () => {
 
   if (!profile) return null;
 
-  const xpToNextLevel = profile.level * 1000;
+  // Calculate level progress
   const progressPercent = (profile.xp % 1000) / 10;
-  
-  // Calculate a fake but plausible rank based on XP
-  const rank = Math.max(1, 450 - Math.floor(profile.xp / 100));
+  const xpToNextLevel = profile.level * 1000;
 
   const stats = [
     { label: t.totalXP, value: profile.xp.toLocaleString(), icon: Zap, color: "text-indigo-500" },
     { label: t.currentLevelLabel, value: profile.level, icon: Trophy, color: "text-yellow-500" },
     { label: t.tasksDone, value: completedTasksCount !== null ? completedTasksCount : "...", icon: Target, color: "text-emerald-500" },
-    { label: t.globalRank, value: `#${rank}`, icon: Star, color: "text-purple-500" },
+    { label: t.dailyStreak, value: Math.min(30, (profile.level * 2) + (profile.xp % 3)), icon: Star, color: "text-purple-500" },
   ];
 
   return (

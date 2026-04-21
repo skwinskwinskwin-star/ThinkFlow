@@ -96,3 +96,42 @@ export interface Quote {
   author: string;
   category: 'learning' | 'thinking' | 'education' | 'science';
 }
+
+export interface Post {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhoto?: string;
+  content: string;
+  likes: string[]; // array of uids
+  commentsCount: number;
+  createdAt: number;
+  attachment?: Attachment;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: number;
+}
+
+export interface DirectMessage {
+  id: string;
+  chatId: string;
+  senderId: string;
+  text: string;
+  timestamp: number;
+  attachment?: Attachment;
+}
+
+export interface ChatThread {
+  id: string;
+  participants: string[]; // [uid1, uid2]
+  participantNames: Record<string, string>;
+  lastMessage: string;
+  lastTimestamp: number;
+  unreadCount?: Record<string, number>;
+}

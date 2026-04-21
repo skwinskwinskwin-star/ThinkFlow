@@ -10,10 +10,11 @@ import { Tasks } from './src/components/Dashboard/Tasks';
 import { Leaderboard } from './src/components/Dashboard/Leaderboard';
 import { Articles } from './src/components/Dashboard/Articles';
 import { Tips } from './src/components/Dashboard/Tips';
-import { Quotes } from './src/components/Dashboard/Quotes';
 import { Reviews } from './src/components/Dashboard/Reviews';
 import { ProfileEditor } from './src/components/Dashboard/ProfileEditor';
 import { Progress } from './src/components/Dashboard/Progress';
+import { Community } from './src/components/Dashboard/Community';
+import { Messages } from './src/components/Dashboard/Messages';
 import { Settings } from './src/components/Dashboard/Settings';
 import { Admin } from './src/components/Dashboard/Admin';
 import { GeniusLab } from './src/components/Dashboard/GeniusLab';
@@ -79,11 +80,12 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case 'genius_lab': return <GeniusLab />;
+      case 'community': return <Community />;
+      case 'messages': return <Messages />;
       case 'tasks': return <Tasks />;
       case 'leaderboard': return <Leaderboard />;
       case 'articles': return <Articles />;
       case 'tips': return <Tips />;
-      case 'quotes': return <Quotes />;
       case 'reviews': return <Reviews />;
       case 'profile': return <ProfileEditor />;
       case 'progress': return <Progress />;

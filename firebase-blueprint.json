@@ -16,7 +16,8 @@
         "role": { "type": "string", "enum": ["student", "teacher", "admin"], "description": "The user's role." },
         "language": { "type": "string", "enum": ["en", "ru", "uz"], "description": "Preferred language." },
         "theme": { "type": "string", "enum": ["light", "dark"], "description": "Preferred theme." },
-        "bio": { "type": "string", "description": "User's short biography." }
+        "bio": { "type": "string", "description": "User's short biography." },
+        "photoURL": { "type": "string", "description": "Base64 or URL of the user's avatar." }
       },
       "required": ["uid", "email", "name"]
     },
@@ -76,6 +77,33 @@
         "created_at": { "type": "number" }
       },
       "required": ["userId", "name", "is_completed", "created_at"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Community post for discussion.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "content": { "type": "string" },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "commentsCount": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "userName", "content", "likes", "commentsCount", "createdAt"]
+    },
+    "ChatThread": {
+      "title": "ChatThread",
+      "description": "A conversation between two users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "lastTimestamp": { "type": "number" }
+      },
+      "required": ["participants", "lastMessage", "lastTimestamp"]
     }
   },
   "firestore": {
@@ -98,6 +126,22 @@
     "/todos/{todoId}": {
       "schema": "Todo",
       "description": "Collection of user todos."
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Collection of community posts."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": "object",
+      "description": "Subcollection of comments on a post."
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatThread",
+      "description": "Collection of direct chat threads."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "object",
+      "description": "Subcollection of messages in a chat thread."
     }
   }
 }
