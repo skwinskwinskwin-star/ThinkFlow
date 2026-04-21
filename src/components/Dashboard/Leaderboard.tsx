@@ -14,10 +14,11 @@ export const Leaderboard: React.FC = () => {
   const { t } = useLanguage();
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, orderBy('xp', 'desc'), limit(20));
+    const q = query(usersRef, orderBy('xp', 'desc'), limit(100)); // Increased limit to 100
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersData = snapshot.docs.map(doc => ({ 
@@ -45,11 +46,16 @@ export const Leaderboard: React.FC = () => {
     );
   }
 
-  const topThree = students.slice(0, 3);
-  const remaining = students.slice(3);
+  const filteredStudents = students.filter(s => 
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.studentClass.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const topThree = filteredStudents.slice(0, 3);
+  const remaining = filteredStudents.slice(3);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-16 animate-in fade-in duration-700 pb-20">
+    <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20">
       <div className="text-center space-y-4">
         <h2 className="text-7xl font-black uppercase tracking-tighter text-[var(--text)] italic">
           {t.leaderboard}
@@ -59,8 +65,25 @@ export const Leaderboard: React.FC = () => {
         </p>
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-md mx-auto relative group">
+        <div className="absolute inset-0 bg-indigo-500/10 blur-xl group-focus-within:bg-indigo-500/20 transition-all rounded-3xl" />
+        <Card className="relative p-2 bg-[var(--card)] border-[var(--border)] rounded-2xl flex items-center gap-3">
+          <div className="pl-4">
+            <Zap className="w-5 h-5 text-indigo-500" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Найди единомышленника..."
+            className="flex-1 bg-transparent border-none outline-none text-sm font-bold placeholder:text-[var(--muted)] py-3 px-2"
+          />
+        </Card>
+      </div>
+
       {/* Podium Section */}
-      {students.length > 0 && (
+      {filteredStudents.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-10">
           {[1, 0, 2].map((podiumIndex) => {
             const student = topThree[podiumIndex];

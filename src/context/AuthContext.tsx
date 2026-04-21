@@ -172,7 +172,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
+          const data = docSnap.data();
+          // Ensure critical fields exist for leaderboard and genius mode
+          if (data.xp === undefined || data.level === undefined || data.geniusMode === undefined) {
+            const updates: Partial<UserProfile> = {};
+            if (data.xp === undefined) updates.xp = 0;
+            if (data.level === undefined) updates.level = 1;
+            if (data.geniusMode === undefined) updates.geniusMode = true;
+            
+            setDoc(userDocRef, updates, { merge: true }).catch(err => {
+              console.warn("Could not patch profile with missing fields:", err);
+            });
+            setProfile({ ...data, ...updates } as UserProfile);
+          } else {
+            setProfile(data as UserProfile);
+          }
         } else {
           // Profile doesn't exist, create a fallback
           const newUser: UserProfile = {

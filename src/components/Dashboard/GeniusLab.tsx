@@ -25,6 +25,9 @@ export const GeniusLab: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyFeedback, setVerifyFeedback] = useState<{ isCorrect: boolean; text: string } | null>(null);
 
+  // Particle Explosion Effect for XP
+  const [xpParticles, setXpParticles] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
+
   const addXPAction = async (amount: number) => {
     if (!profile || !user) return;
     const newXP = (profile.xp || 0) + amount;
@@ -35,6 +38,16 @@ export const GeniusLab: React.FC = () => {
       xp: newXP, 
       level: newLevel > profile.level ? newLevel : profile.level 
     });
+
+    // XP Particle Explosion - RAINBOW ENERGT
+    const particles = [...Array(15)].map((_, i) => ({
+      id: Date.now() + i,
+      x: (Math.random() - 0.5) * 400,
+      y: (Math.random() - 0.5) * 400,
+      color: i % 3 === 0 ? 'text-emerald-400' : i % 3 === 1 ? 'text-purple-400' : 'text-indigo-400'
+    }));
+    setXpParticles(particles);
+    setTimeout(() => setXpParticles([]), 2000);
 
     const id = Date.now();
     setFloatingXP(prev => [...prev, { id, amount }]);
@@ -253,6 +266,20 @@ export const GeniusLab: React.FC = () => {
     );
   }
 
+  // Ambient Data Logs for 'Cyber' immersion
+  const dataLogs = [
+    "NEURAL_LINK_ESTABLISHED",
+    "DECODER_READY_STATE:_ACTIVE",
+    "SYNCING_METAPHOR_MATRIX...",
+    "KNOWLEDGE_TREE_DEPTH:_6",
+    "BRAIN_WAVE_CONSISTENCY:_98%",
+    "ENFORCING_COGNITIVE_SCAFFOLDING",
+    "FETCHING_GENIUS_INSIGHTS...",
+    "DATA_STREAM_POLLING:_TRUE",
+    "VIRTUAL_NEURONS:_1024",
+    "AI_CORE_TEMPERATURE:_STABLE"
+  ];
+
   if (!tree) {
     return (
       <div className="max-w-5xl mx-auto flex flex-col items-center pt-24 md:pt-40 pb-20 p-6 relative">
@@ -261,22 +288,54 @@ export const GeniusLab: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="w-full space-y-16 text-center"
         >
-          <div className="space-y-6">
+          <div className="space-y-6 relative">
+            {/* Holographic Particles around Title */}
+            <div className="absolute inset-x-0 -top-20 pointer-events-none flex justify-center">
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="w-40 h-40 border-2 border-dashed border-indigo-500/20 rounded-full blur-sm"
+              />
+            </div>
+
             <div className="flex flex-wrap items-center justify-center gap-4">
               <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/10">
                 <Zap className="w-5 h-5 fill-current" />
-                {t.nextGenAI} [v6.0]
+                {t.nextGenAI} [v7.0]
               </div>
               {profile?.geniusMode && (
-                <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] animate-pulse shadow-lg shadow-emerald-500/10">
+                <motion.div 
+                  animate={{ scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/10"
+                >
                   <Sparkles className="w-5 h-5 fill-current" />
                   {t.geniusModeActive}
-                </div>
+                </motion.div>
               )}
             </div>
-            <h1 className="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white italic">
-              Genius <span className="text-indigo-500 drop-shadow-[0_0_30px_rgba(99,102,241,0.5)]">Lab</span>
-            </h1>
+
+              <h1 className="relative inline-block text-6xl md:text-9xl font-black uppercase tracking-tighter italic">
+                <span className="relative z-10 text-white mix-blend-overlay">Genius</span>
+                <span className="text-indigo-500 drop-shadow-[0_0_50px_rgba(99,102,241,0.8)] px-4">Lab</span>
+                
+                {/* Chromatic Aberration Layers */}
+                <motion.span
+                  animate={{ x: [-1, 1, -1], y: [1, -1, 1], opacity: [0, 0.4, 0] }}
+                  transition={{ duration: 0.2, repeat: Infinity }}
+                  className="absolute inset-0 text-rose-500 italic -z-10 translate-x-1"
+                >
+                  Genius Lab
+                </motion.span>
+                <motion.span
+                  animate={{ x: [1, -1, 1], y: [-1, 1, -1], opacity: [0, 0.4, 0] }}
+                  transition={{ duration: 0.2, repeat: Infinity, delay: 0.1 }}
+                  className="absolute inset-0 text-cyan-500 italic -z-10 -translate-x-1"
+                >
+                  Genius Lab
+                </motion.span>
+              </h1>
+            
             <p className="text-gray-400 max-w-2xl mx-auto font-medium text-lg leading-relaxed">
               {t.geniusLabSub}
             </p>
@@ -389,7 +448,28 @@ export const GeniusLab: React.FC = () => {
       </AnimatePresence>
 
       {/* Knowledge Map Sidebar */}
-      <div className="w-full lg:w-96 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 relative z-10">
+      <div className="w-full lg:w-96 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-4 relative z-10">
+        {/* Neural Console Overlay (WOW FACTOR) */}
+        <div className="p-4 rounded-3xl bg-indigo-500/5 border border-indigo-500/20 backdrop-blur-xl mb-4 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-2 opacity-30">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }}>
+              <Zap className="w-3 h-3 text-indigo-400" />
+            </motion.div>
+          </div>
+          <div className="space-y-1.5 h-24 overflow-hidden font-mono text-[8px] text-indigo-400/60 leading-tight">
+            {dataLogs.concat(dataLogs).map((log, i) => (
+              <motion.div
+                key={i}
+                animate={{ y: [0, -100] }}
+                transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: i * 0.1 }}
+              >
+                {`> ${log}`}
+              </motion.div>
+            ))}
+          </div>
+          <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[#020205] to-transparent pointer-events-none" />
+        </div>
+
         <div className="flex items-center justify-between px-2">
           <div className="space-y-1">
             <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400/60">{t.knowledgeMap}</h3>
@@ -397,13 +477,16 @@ export const GeniusLab: React.FC = () => {
           </div>
           <button 
             onClick={resetLab} 
-            className="px-4 py-1.5 rounded-full border border-indigo-500/30 text-[10px] font-black uppercase text-indigo-400 hover:bg-indigo-500/10 transition-colors shadow-lg shadow-indigo-500/5"
+            className="px-4 py-1.5 rounded-full border border-indigo-500/30 text-[10px] font-black uppercase text-indigo-400 hover:bg-indigo-500/10 transition-colors shadow-lg shadow-indigo-500/5 backdrop-blur-md"
           >
             {t.newTopic}
           </button>
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-4 relative">
+          {/* SVG Connection Lines - NEURAL WEB */}
+          <div className="absolute left-[34px] top-8 bottom-8 w-px border-l border-dashed border-indigo-500/20 z-0" />
+
           {tree?.nodes?.map((node, i) => (
             <motion.button
               key={node.id}
@@ -415,33 +498,42 @@ export const GeniusLab: React.FC = () => {
                 setShowChat(false);
               }}
               className={`
-                w-full p-6 rounded-[2rem] border text-left transition-all relative overflow-hidden group
+                w-full p-6 rounded-[2.2rem] border text-left transition-all relative overflow-hidden group z-10
                 ${selectedNode?.id === node.id 
-                  ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_20px_40px_rgba(79,70,229,0.3)] scale-[1.02]' 
-                  : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/10 hover:scale-[1.01]'}
+                  ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_25px_50px_rgba(79,70,229,0.4)] scale-[1.03]' 
+                  : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/10 hover:scale-[1.01] backdrop-blur-md'}
               `}
             >
               {/* Scanline effect for active node */}
               {selectedNode?.id === node.id && (
-                <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,_rgba(0,0,0,0.25)_50%),_linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 bg-[length:100%_4px,3px_100%]" />
+                <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,_rgba(0,0,0,0.3)_50%),_linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 bg-[length:100%_4px,3px_100%]" />
               )}
 
               <div className="flex items-center gap-5 relative z-10">
                 <div className={`
-                  w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-colors
-                  ${selectedNode?.id === node.id ? 'bg-white/20 text-white' : 'bg-indigo-600/20 text-indigo-400'}
+                  w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500
+                  ${selectedNode?.id === node.id ? 'bg-white text-indigo-600 rotate-12' : 'bg-indigo-600/20 text-indigo-400'}
+                  shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)]
                 `}>
                   {String(i + 1).padStart(2, '0')}
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="font-black text-sm tracking-tight truncate uppercase italic">{node.label}</span>
-                  {node.points && <span className={`text-[9px] font-bold ${selectedNode?.id === node.id ? 'text-white/60' : 'text-indigo-400/60'}`}>+ {node.points} XP NODE</span>}
+                  {node.points && <span className={`text-[9px] font-bold tracking-widest ${selectedNode?.id === node.id ? 'text-white/60' : 'text-indigo-400/60'}`}>+ {node.points} XP NODE</span>}
                 </div>
-                {selectedNode?.id === node.id && <ChevronRight className="w-5 h-5 ml-auto animate-pulse" />}
+                {selectedNode?.id === node.id && (
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="ml-auto"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </motion.div>
+                )}
               </div>
               {node.completed && (
                 <div className="absolute top-4 right-4 animate-bounce-subtle">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
                 </div>
               )}
             </motion.button>
@@ -451,6 +543,21 @@ export const GeniusLab: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        {/* XP Particle Explosion Overlay */}
+        <AnimatePresence>
+          {xpParticles.map(p => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
+              animate={{ opacity: 0, scale: 2, x: p.x, y: p.y }}
+              exit={{ opacity: 0 }}
+              className={`absolute left-1/2 top-1/2 z-[200] pointer-events-none ${p.color}`}
+            >
+              <Zap className="w-8 h-8 fill-current blur-[0.5px]" />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           {showChat ? (
             <motion.div
@@ -485,7 +592,10 @@ export const GeniusLab: React.FC = () => {
               exit={{ opacity: 0, x: -20 }}
               className="h-full flex flex-col space-y-8"
             >
-              <Card className="p-12 rounded-[4rem] bg-black/40 border border-white/10 relative overflow-hidden backdrop-blur-3xl shadow-2xl">
+              <Card className="p-12 rounded-[4rem] bg-black/40 border border-white/10 relative overflow-hidden backdrop-blur-3xl shadow-2xl group/main">
+                {/* Rainbow Energy Border Animation */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 opacity-20 blur-2xl group-hover/main:opacity-40 transition-opacity duration-700 animate-gradient-x" />
+                
                 {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] scale-150 rotate-12 pointer-events-none">
                   <Brain className="w-80 h-80" />
