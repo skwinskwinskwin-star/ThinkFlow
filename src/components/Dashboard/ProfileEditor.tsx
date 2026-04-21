@@ -12,20 +12,57 @@ import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 
 export const ProfileEditor: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfileData } = useAuth();
   const { t } = useLanguage();
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState<string[]>(profile?.interests || []);
   const [photoURL, setPhotoURL] = useState<string | undefined>(profile?.photoURL);
 
+  const compressImage = (base64Str: string, maxWidth = 400, maxHeight = 400): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    });
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check file size (limit to 5MB for processing)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image is too large (max 5MB)");
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoURL(reader.result as string);
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string);
+      setPhotoURL(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -44,23 +81,25 @@ export const ProfileEditor: React.FC = () => {
     setIsSaving(true);
 
     const fd = new FormData(e.currentTarget);
+    const ageVal = fd.get('age') as string;
     
     const updatedProfile: Partial<UserProfile> = {
       name: fd.get('name') as string,
       bio: fd.get('bio') as string,
-      studentClass: fd.get('class') as StudentClass,
+      studentClass: (fd.get('class') as StudentClass) || profile.studentClass,
       interests: selectedInterests,
-      age: parseInt(fd.get('age') as string) || profile.age,
+      age: ageVal ? parseInt(ageVal) : profile.age,
       photoURL: photoURL
     };
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), updatedProfile);
+      await updateProfileData(updatedProfile);
       
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error("Profile update error:", error);
+      alert("Failed to save profile. Please try a smaller image or check your connection.");
     } finally {
       setIsSaving(false);
     }
