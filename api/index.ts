@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const app = express();
 
@@ -127,6 +127,60 @@ app.post("/api/ai/tree", async (req, res) => {
   } catch (err: any) {
     console.error("Tree Error:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// --- VERIFICATION PROXY ---
+app.post("/api/ai/verify", async (req, res) => {
+  try {
+    const key = getApiKey();
+    if (!key) return res.status(500).json({ error: "API Key not configured" });
+
+    const ai = new GoogleGenAI({ apiKey: key });
+    const { task, answer, profile } = req.body;
+    
+    if (!answer) return res.status(400).json({ error: "Answer is required" });
+
+    const prompt = `SCIENTIFIC VERIFICATION PROTOCOL (OBJECTIVE MODE)
+    
+    PROBLEM: ${task.challenge || task.description}
+    STUDENT ANSWER: "${answer}"
+    
+    YOUR ROLE:
+    1. Solve the problem yourself with absolute precision.
+    2. Check the student's numerical value AND units (if applicable).
+    3. Allow for minor rounding differences (e.g., 3.14 vs 3.14159) but be strict on the core logic.
+    4. Reject vague explanations. Expect the specific RESULT.
+    
+    Return ONLY JSON:
+    {
+      "isCorrect": boolean,
+      "feedback": "Concise scientific feedback (1 sentence). If wrong, briefly mention why.",
+      "bonusXP": number (0-20, only for perfect and elegant solutions)
+    }`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { 
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            isCorrect: { type: Type.BOOLEAN },
+            feedback: { type: Type.STRING },
+            bonusXP: { type: Type.INTEGER }
+          },
+          required: ["isCorrect", "feedback"]
+        }
+      }
+    });
+
+    const verificationResult = JSON.parse(response.text || '{}');
+    res.json(verificationResult);
+  } catch (error: any) {
+    console.error("Verification Error:", error);
+    res.status(500).json({ error: error.message || "Verification failed" });
   }
 });
 
