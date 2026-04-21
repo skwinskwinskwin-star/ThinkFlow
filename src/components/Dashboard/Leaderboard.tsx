@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Medal, Crown, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trophy, Medal, Crown, Loader2, ArrowUp, ArrowDown, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { UserProfile } from '../../types';
 import { db } from '../../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore';
 import { Card } from '../UI/Card';
+import { motion } from 'framer-motion';
 
 export const Leaderboard: React.FC = () => {
   const { user } = useAuth();
@@ -19,7 +20,13 @@ export const Leaderboard: React.FC = () => {
     const q = query(usersRef, orderBy('xp', 'desc'), limit(20));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => doc.data() as UserProfile);
+      const usersData = snapshot.docs.map(doc => ({ 
+        uid: doc.id, 
+        ...doc.data() 
+      } as UserProfile));
+      
+      // If there's only one user (the current one), we can show some placeholders 
+      // or just ensure the layout is robust for single-player mode.
       setStudents(usersData);
       setLoading(false);
     }, (error) => {
@@ -38,81 +45,135 @@ export const Leaderboard: React.FC = () => {
     );
   }
 
+  const topThree = students.slice(0, 3);
+  const remaining = students.slice(3);
+
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700">
+    <div className="max-w-5xl mx-auto space-y-16 animate-in fade-in duration-700 pb-20">
       <div className="text-center space-y-4">
-        <h2 className="text-6xl font-black uppercase tracking-tighter text-[var(--text)]">
+        <h2 className="text-7xl font-black uppercase tracking-tighter text-[var(--text)] italic">
           {t.leaderboard}
         </h2>
-        <p className="text-[var(--muted)] font-medium tracking-widest uppercase text-[10px]">
+        <p className="text-indigo-500 font-black tracking-[0.3em] uppercase text-xs">
           The Hall of Fame for Global Thinkers
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {students.map((student, index) => {
-          const isMe = student.uid === user?.uid;
-          const isTop3 = index < 3;
+      {/* Podium Section */}
+      {students.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-10">
+          {[1, 0, 2].map((podiumIndex) => {
+            const student = topThree[podiumIndex];
+            if (!student) return <div key={`empty-${podiumIndex}`} className="hidden md:block" />;
+            
+            const isMe = student.uid === user?.uid;
+            const rank = podiumIndex + 1;
+            const isFirst = rank === 1;
 
-          return (
-            <Card 
-              key={student.uid} 
-              className={`
-                flex items-center justify-between p-8 md:p-10 rounded-[3rem] transition-all
-                ${isMe ? 'bg-indigo-600/10 border-indigo-500/30 ring-1 ring-indigo-500/20' : ''}
-                ${isTop3 ? 'scale-[1.02] shadow-xl' : ''}
-              `}
-            >
-              <div className="flex items-center gap-6 md:gap-10">
-                <div className="w-12 text-center">
-                  {index === 0 ? <Crown className="w-8 h-8 text-yellow-500 mx-auto" /> :
-                   index === 1 ? <Medal className="w-8 h-8 text-slate-400 mx-auto" /> :
-                   index === 2 ? <Medal className="w-8 h-8 text-amber-600 mx-auto" /> :
-                   <span className="text-3xl font-black opacity-20 text-[var(--text)]">{index + 1}</span>}
+            return (
+              <motion.div
+                key={student.uid}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: rank * 0.1 }}
+                className={`
+                  relative flex flex-col items-center p-8 rounded-[3.5rem] border transition-all
+                  ${isFirst ? 'md:order-2 md:-translate-y-10 bg-indigo-600 text-white border-indigo-400 shadow-[0_20px_50px_rgba(79,70,229,0.4)]' : 'md:order-1 bg-[var(--card)] border-[var(--border)]'}
+                  ${rank === 2 ? 'md:order-1' : rank === 3 ? 'md:order-3' : ''}
+                `}
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                  {rank === 1 ? <Crown className="w-12 h-12 text-yellow-400 drop-shadow-xl" /> :
+                   rank === 2 ? <Medal className="w-10 h-10 text-slate-300" /> :
+                   <Medal className="w-10 h-10 text-amber-600" />}
                 </div>
 
-                <div className="relative">
-                  <div className={`
-                    w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] flex items-center justify-center text-2xl font-black text-white shadow-2xl
-                    ${isTop3 ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-[var(--muted)]'}
-                  `}>
-                    {student.name?.[0] || 'U'}
-                  </div>
-                  {isMe && (
-                    <div className="absolute -top-2 -right-2 bg-indigo-500 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                      You
-                    </div>
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] bg-indigo-500/20 mb-6 overflow-hidden border-4 border-indigo-500/30 flex items-center justify-center text-3xl font-black">
+                  {student.photoURL ? (
+                    <img src={student.photoURL} alt={student.name} className="w-full h-full object-cover" />
+                  ) : (
+                    student.name?.[0] || 'U'
                   )}
                 </div>
 
-                <div>
-                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-[var(--text)]">
-                    {student.name}
-                  </h3>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest">
-                      LVL {student.level}
-                    </span>
-                    <span className="w-1 h-1 bg-[var(--border)] rounded-full" />
-                    <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">
-                      {student.studentClass}
-                    </span>
+                <h3 className="text-2xl font-black uppercase tracking-tight text-center truncate w-full">
+                  {student.name}
+                </h3>
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 ${isFirst ? 'text-indigo-200' : 'text-[var(--muted)]'}`}>
+                  LVL {student.level} • {student.studentClass}
+                </p>
+                
+                <div className={`px-6 py-2 rounded-2xl font-black text-xl flex items-center gap-2 ${isFirst ? 'bg-white text-indigo-600' : 'bg-indigo-600/10 text-indigo-500'}`}>
+                  <Zap className="w-5 h-5 fill-current" />
+                  {student.xp.toLocaleString()}
+                </div>
+
+                {isMe && (
+                  <div className="mt-4 px-3 py-1 bg-white/20 rounded-full text-[8px] font-black uppercase tracking-[0.2em]">
+                    Это вы
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* List Section */}
+      {remaining.length > 0 && (
+        <div className="space-y-4">
+          {remaining.map((student, index) => {
+            const isMe = student.uid === user?.uid;
+            const absoluteRank = index + 4;
+
+            return (
+              <Card 
+                key={student.uid} 
+                className={`
+                  flex items-center justify-between p-6 md:p-8 rounded-[2.5rem] transition-all group
+                  ${isMe ? 'bg-indigo-600/10 border-indigo-500/30' : 'hover:border-indigo-500/20'}
+                `}
+              >
+                <div className="flex items-center gap-6 md:gap-10">
+                  <span className="w-10 text-2xl font-black text-[var(--muted)] group-hover:text-indigo-500 transition-colors">
+                    # {absoluteRank}
+                  </span>
+
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-xl font-black text-indigo-500 overflow-hidden shadow-sm">
+                    {student.photoURL ? (
+                      <img src={student.photoURL} alt={student.name} className="w-full h-full object-cover" />
+                    ) : (
+                      student.name?.[0] || 'U'
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight text-[var(--text)]">
+                      {student.name} {isMe && <span className="ml-2 text-[8px] align-middle bg-indigo-500 text-white px-2 py-0.5 rounded-full">YOU</span>}
+                    </h3>
+                    <p className="text-[10px] font-black uppercase text-[var(--muted)] tracking-widest mt-1">
+                      LVL {student.level} • {student.studentClass}
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              <div className="text-right">
-                <p className="text-3xl md:text-4xl font-black text-indigo-500 font-mono tracking-tighter">
-                  {student.xp.toLocaleString()}
-                </p>
-                <p className="text-[9px] font-black uppercase text-[var(--muted)] tracking-widest mt-1">
-                  Total XP
-                </p>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-indigo-500 font-mono tracking-tighter">
+                    {student.xp.toLocaleString()} XP
+                  </p>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {students.length === 0 && (
+        <div className="py-20 text-center opacity-30">
+          <Trophy className="w-20 h-20 mx-auto mb-6" />
+          <p className="text-xl font-black uppercase tracking-[0.2em]">Пока никого нет...</p>
+        </div>
+      )}
     </div>
   );
 };

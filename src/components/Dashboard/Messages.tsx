@@ -127,13 +127,25 @@ export const Messages: React.FC = () => {
           [user.uid]: profile.name,
           [targetUser.uid]: targetUser.name
         },
+        participantPhotos: {
+          [user.uid]: profile.photoURL || null,
+          [targetUser.uid]: targetUser.photoURL || null
+        },
         lastMessage: 'Начат новый разговор',
         lastTimestamp: Date.now()
       };
       await setDoc(threadRef, newThread);
       setSelectedThread({ id: threadId, ...newThread } as ChatThread);
     } else {
-      setSelectedThread({ id: threadId, ...threadSnap.data() } as ChatThread);
+      // Update photos if they exist but might be outdated
+      const existingData = threadSnap.data() as ChatThread;
+      const updatedPhotos = {
+        ...existingData.participantPhotos,
+        [user.uid]: profile.photoURL || null,
+        [targetUser.uid]: targetUser.photoURL || null
+      };
+      await updateDoc(threadRef, { participantPhotos: updatedPhotos });
+      setSelectedThread({ id: threadId, ...existingData, participantPhotos: updatedPhotos } as ChatThread);
     }
     setSearchQuery('');
     setSearchResults([]);
@@ -162,6 +174,11 @@ export const Messages: React.FC = () => {
   const getOtherParticipantName = (thread: ChatThread) => {
     const otherId = thread.participants.find(id => id !== user?.uid);
     return otherId ? thread.participantNames[otherId] : 'User';
+  };
+
+  const getOtherParticipantPhoto = (thread: ChatThread) => {
+    const otherId = thread.participants.find(id => id !== user?.uid);
+    return otherId ? thread.participantPhotos?.[otherId] : null;
   };
 
   if (loading) {
@@ -208,7 +225,13 @@ export const Messages: React.FC = () => {
                     onClick={() => startNewChat(u)}
                     className="w-full p-4 flex items-center gap-3 hover:bg-[var(--input)] transition-all border-b border-[var(--border)] last:border-none"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">{u.name[0]}</div>
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black overflow-hidden bg-indigo-600 shadow-lg shadow-indigo-500/10">
+                      {u.photoURL ? (
+                        <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
+                      ) : (
+                        u.name[0]
+                      )}
+                    </div>
                     <div className="text-left">
                       <p className="font-bold text-xs text-[var(--text)]">{u.name}</p>
                       <p className="text-[10px] text-gray-500 uppercase font-black">{u.studentClass}</p>
@@ -231,8 +254,12 @@ export const Messages: React.FC = () => {
                 ${selectedThread?.id === thread.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'hover:bg-[var(--input)] text-[var(--text)]'}
               `}
             >
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black ${selectedThread?.id === thread.id ? 'bg-white/20 text-white' : 'bg-indigo-600 text-white'}`}>
-                {getOtherParticipantName(thread)[0]}
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black overflow-hidden shadow-lg shadow-indigo-500/10 ${selectedThread?.id === thread.id ? 'bg-white/20 text-white' : 'bg-indigo-600 text-white'}`}>
+                {getOtherParticipantPhoto(thread) ? (
+                  <img src={getOtherParticipantPhoto(thread)!} alt={getOtherParticipantName(thread)} className="w-full h-full object-cover" />
+                ) : (
+                  getOtherParticipantName(thread)[0]
+                )}
               </div>
               <div className="flex-1 text-left overflow-hidden">
                 <p className="font-black text-sm truncate">{getOtherParticipantName(thread)}</p>
@@ -266,8 +293,12 @@ export const Messages: React.FC = () => {
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">
-                {getOtherParticipantName(selectedThread)[0]}
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black overflow-hidden shadow-lg shadow-indigo-500/10">
+                {getOtherParticipantPhoto(selectedThread) ? (
+                  <img src={getOtherParticipantPhoto(selectedThread)!} alt={getOtherParticipantName(selectedThread)} className="w-full h-full object-cover" />
+                ) : (
+                  getOtherParticipantName(selectedThread)[0]
+                )}
               </div>
               <div className="flex-1">
                 <h3 className="font-black text-[var(--text)]">{getOtherParticipantName(selectedThread)}</h3>

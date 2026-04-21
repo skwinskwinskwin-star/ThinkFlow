@@ -44,8 +44,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
               <p className="text-[8px] font-black text-[var(--muted)] uppercase tracking-widest">{t.globalXP}</p>
               <p className="text-lg font-black text-indigo-500 leading-none">{profile?.xp || 0}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/20">
-              {profile?.name?.[0] || 'U'}
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/20 overflow-hidden">
+              {profile?.photoURL ? (
+                <img src={profile.photoURL} alt={profile.name} className="w-full h-full object-cover" />
+              ) : (
+                profile?.name?.[0] || 'U'
+              )}
             </div>
           </div>
         </div>

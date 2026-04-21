@@ -114,6 +114,7 @@ export interface Comment {
   postId: string;
   userId: string;
   userName: string;
+  userPhoto?: string;
   content: string;
   createdAt: number;
 }
@@ -131,6 +132,7 @@ export interface ChatThread {
   id: string;
   participants: string[]; // [uid1, uid2]
   participantNames: Record<string, string>;
+  participantPhotos?: Record<string, string | null>;
   lastMessage: string;
   lastTimestamp: number;
   unreadCount?: Record<string, number>;

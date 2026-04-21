@@ -119,8 +119,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, currentView,
             className="p-4 bg-[var(--input)] rounded-2xl border border-[var(--border)] flex items-center gap-3 cursor-pointer hover:border-indigo-500/30 transition-all"
             onClick={() => onViewChange('profile')}
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">
-              {profile?.name?.[0] || 'U'}
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black overflow-hidden">
+              {profile?.photoURL ? (
+                <img src={profile.photoURL} alt={profile.name} className="w-full h-full object-cover" />
+              ) : (
+                profile?.name?.[0] || 'U'
+              )}
             </div>
             <div className="overflow-hidden">
               <p className="font-bold text-xs truncate text-[var(--text)]">{profile?.name}</p>

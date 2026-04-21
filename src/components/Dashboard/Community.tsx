@@ -109,6 +109,7 @@ export const Community: React.FC = () => {
         postId,
         userId: user.uid,
         userName: profile.name,
+        userPhoto: profile.photoURL || null,
         content: newComment,
         createdAt: Date.now()
       });
@@ -150,10 +151,14 @@ export const Community: React.FC = () => {
       </div>
 
       {/* Create Post */}
-      <Card className="p-6 md:p-8 rounded-[2.5rem] border border-[var(--border)] bg-[var(--card)] shadow-xl relative overflow-hidden group">
+      <Card className="p-6 md:p-8 rounded-[2.5rem] border border border-[var(--border)] bg-[var(--card)] shadow-xl relative overflow-hidden group">
         <div className="flex gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black flex-shrink-0">
-            {profile?.name?.[0] || 'U'}
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black flex-shrink-0 overflow-hidden">
+            {profile?.photoURL ? (
+              <img src={profile.photoURL} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              profile?.name?.[0] || 'U'
+            )}
           </div>
           <div className="flex-1 space-y-4">
             <textarea
@@ -194,8 +199,12 @@ export const Community: React.FC = () => {
             <Card className="p-6 md:p-8 rounded-[2.5rem] border border-[var(--border)] hover:border-indigo-500/20 transition-all group overflow-hidden">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 font-black">
-                    {post.userName?.[0] || 'U'}
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 font-black overflow-hidden bg-indigo-600 shadow-lg shadow-indigo-500/10">
+                    {post.userPhoto ? (
+                      <img src={post.userPhoto} alt={post.userName} className="w-full h-full object-cover" />
+                    ) : (
+                      post.userName?.[0] || 'U'
+                    )}
                   </div>
                   <div>
                     <h4 className="font-black text-[var(--text)] tracking-tight">{post.userName}</h4>
@@ -250,8 +259,12 @@ export const Community: React.FC = () => {
                       <div className="space-y-4">
                         {comments[post.id]?.map((comment) => (
                           <div key={comment.id} className="flex gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 text-[10px] font-black flex-shrink-0">
-                              {comment.userName?.[0]}
+                            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 overflow-hidden shadow-lg shadow-indigo-500/10">
+                              {comment.userPhoto ? (
+                                <img src={comment.userPhoto} alt={comment.userName} className="w-full h-full object-cover" />
+                              ) : (
+                                comment.userName?.[0] || 'U'
+                              )}
                             </div>
                             <div className="flex-1 bg-[var(--input)] p-4 rounded-2xl rounded-tl-none">
                               <p className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-1">{comment.userName}</p>
