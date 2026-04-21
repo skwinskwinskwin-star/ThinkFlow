@@ -30,12 +30,23 @@ app.use(express.json());
 app.post("/api/ai/chat", async (req, res) => {
   try {
     const ai = getGenAI();
-    const { type, prompt, profile, history = [] } = req.body;
+    const { type, prompt, profile, history = [], attachment } = req.body;
     
-    if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+    if (!prompt && !attachment) return res.status(400).json({ error: "Missing prompt or attachment" });
 
     const safeProfile = profile || { interests: ["science"], studentClass: "7th Grade", language: "ru" };
     const interests = Array.isArray(safeProfile.interests) ? safeProfile.interests : ["logic"];
+
+    const userParts: any[] = [];
+    if (prompt) userParts.push({ text: prompt });
+    if (attachment) {
+      userParts.push({
+        inlineData: {
+          data: attachment.data,
+          mimeType: attachment.mimeType
+        }
+      });
+    }
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -44,12 +55,12 @@ app.post("/api/ai/chat", async (req, res) => {
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: String(m.text || "") }]
         })).filter(m => m.parts[0].text),
-        { role: 'user', parts: [{ text: prompt }] }
+        { role: 'user', parts: userParts }
       ],
       config: {
         systemInstruction: type === 'genius' 
-          ? `You are the GENIUS LAB CORE. researcher. Student: ${safeProfile.studentClass}. Interests: ${interests.join(', ')}. MANDATORY: Use metaphors based on interests for every explanation. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}.`
-          : `ThinkFlow Sidekick. Interests: ${interests.join(', ')}. Use metaphors from interests. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}.`
+          ? `You are the GENIUS LAB CORE researcher. Student: ${safeProfile.studentClass}. Interests: ${interests.join(', ')}. MANDATORY: Use metaphors based on interests for every explanation. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}. If an image is provided, analyze it thoroughly and explain it using the student's interests.`
+          : `ThinkFlow Sidekick. Interests: ${interests.join(', ')}. Use metaphors from interests. Respond in ${safeProfile.language === 'ru' ? 'Russian' : 'English'}. If an image is provided, analyze it and help the student understand it.`
       }
     });
 
@@ -138,13 +149,25 @@ app.post("/api/ai/verify", async (req, res) => {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
-      config: { responseMimeType: "application/json" }
+      config: { 
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            isCorrect: { type: Type.BOOLEAN },
+            feedback: { type: Type.STRING },
+            bonusXP: { type: Type.INTEGER }
+          },
+          required: ["isCorrect", "feedback"]
+        }
+      }
     });
 
-    res.json(JSON.parse(response.text || '{}'));
+    const verificationResult = JSON.parse(response.text || '{}');
+    res.json(verificationResult);
   } catch (error: any) {
     console.error("Verification Error:", error);
-    res.status(500).json({ error: "Verification failed" });
+    res.status(500).json({ error: error.message || "Verification failed" });
   }
 });
 

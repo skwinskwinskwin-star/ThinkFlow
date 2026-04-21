@@ -31,9 +31,9 @@ export async function askThinkFlowAI(
   prompt: string,
   profile: UserProfile,
   history: Message[] = [],
-  _attachment?: any
+  attachment?: any
 ) {
-  const result = await callServerAI('chat', { type, prompt, profile, history });
+  const result = await callServerAI('chat', { type, prompt, profile, history, attachment });
   return result.text || "AI failed to generate a response.";
 }
 

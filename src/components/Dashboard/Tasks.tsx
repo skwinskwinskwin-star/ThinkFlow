@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, CheckCircle2, Trophy, Clock, Plus, Loader2 } from 'lucide-react';
+import { Zap, CheckCircle2, Trophy, Clock, Plus, Loader2, Trash2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Task } from '../../types';
@@ -9,7 +9,6 @@ import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, 
 import { Button } from '../UI/Button';
 import { Card } from '../UI/Card';
 import { verifyTask } from '../../services/gemini';
-import { Trash2 } from 'lucide-react';
 
 export const Tasks: React.FC = () => {
   const { user, profile } = useAuth();
@@ -21,6 +20,7 @@ export const Tasks: React.FC = () => {
   const [taskAnswers, setTaskAnswers] = useState<Record<string, string>>({});
   const [verifyingTaskId, setVerifyingTaskId] = useState<string | null>(null);
   const [taskFeedback, setTaskFeedback] = useState<Record<string, { isCorrect: boolean; text: string }>>({});
+  const [errorStatus, setErrorStatus] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -114,6 +114,7 @@ export const Tasks: React.FC = () => {
     if (!user || !profile || task.status === 'completed' || !answer?.trim()) return;
 
     setVerifyingTaskId(task.id);
+    setErrorStatus(prev => ({ ...prev, [task.id]: null }));
     try {
       const result = await verifyTask(task, answer, profile);
       
@@ -127,8 +128,9 @@ export const Tasks: React.FC = () => {
         await updateDoc(doc(db, 'tasks', task.id), { status: 'completed' });
         await updateDoc(doc(db, 'users', user.uid), { xp: (profile.xp || 0) + reward });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Task completion error:", error);
+      setErrorStatus(prev => ({ ...prev, [task.id]: error.message || "Ошибка верификации. Попробуйте еще раз." }));
     } finally {
       setVerifyingTaskId(null);
     }
@@ -235,6 +237,13 @@ export const Tasks: React.FC = () => {
                   {taskFeedback[task.id] && (
                     <div className={`p-4 rounded-xl text-xs font-bold border ${taskFeedback[task.id].isCorrect ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-600'}`}>
                       {taskFeedback[task.id].text}
+                    </div>
+                  )}
+
+                  {errorStatus[task.id] && (
+                    <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      {errorStatus[task.id]}
                     </div>
                   )}
 
